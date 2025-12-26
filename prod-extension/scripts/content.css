@@ -1,0 +1,9 @@
+/* Styles for ScreenSense camera overlay */
+
+#screensense-camera-overlay {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+#screensense-camera-overlay * {
+  box-sizing: border-box;
+}

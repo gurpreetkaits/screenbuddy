@@ -1,0 +1,97 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: robin
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e  # Exit immediately if a command exits with a non-zero status
+            set -o pipefail  # Return value of a pipeline is the status of the last command to exit with a non-zero status
+
+            # Check if we have write permissions
+            if [ ! -w /var/www/html/screenbuddy ]; then
+              echo "Error: No write permission to /var/www/html/screenbuddy"
+              exit 1
+            fi
+
+            cd /var/www/html/screenbuddy || { echo "Error: Cannot change to directory"; exit 1; }
+
+            # Check if git is available and working
+            if ! command -v git &> /dev/null; then
+              echo "Error: git is not installed"
+              exit 1
+            fi
+
+            # Reset any local changes to avoid conflicts during pull
+            git reset --hard || { echo "Error: git reset failed"; exit 1; }
+            git pull origin master || { echo "Error: git pull failed"; exit 1; }
+
+            # Check if composer is available
+            if ! command -v composer &> /dev/null; then
+              echo "Error: composer is not installed"
+              exit 1
+            fi
+
+            # Ensure SQLite database file exists and has correct permissions
+            if [ ! -f database/database.sqlite ]; then
+              touch database/database.sqlite || { echo "Error: Cannot create database file"; exit 1; }
+              chmod 664 database/database.sqlite || { echo "Error: Cannot set database permissions"; exit 1; }
+            fi
+
+            # Check if we have permission to change permissions
+            if ! sudo -n true 2>/dev/null; then
+              echo "Error: No sudo permission"
+              exit 1
+            fi
+
+            # Set correct permissions
+            sudo chmod -R 775 /var/www/html/screenbuddy || { echo "Error: Cannot set directory permissions"; exit 1; }
+
+            # Install PHP dependencies
+            composer install --no-dev --optimize-autoloader || { echo "Error: composer install failed"; exit 1; }
+
+            # Run Laravel migrations
+            php artisan migrate --force || { echo "Error: Database migration failed"; exit 1; }
+
+            # Clear and cache Laravel configurations
+            php artisan cache:clear || { echo "Error: Cache clear failed"; exit 1; }
+            php artisan config:cache || { echo "Error: Config cache failed"; exit 1; }
+
+            # Check if npm is available
+            if ! command -v npm &> /dev/null; then
+              echo "Error: npm is not installed"
+              exit 1
+            fi
+
+            # Install Node dependencies and build assets
+            cd /var/www/html/screenbuddy/frontend || { echo "Error: Cannot change to frontend directory"; exit 1; }
+            npm install || { echo "Error: npm install failed"; exit 1; }
+            npm run build || { echo "Error: Frontend build failed"; exit 1; }
+
+            # Check if Apache is running
+            if ! systemctl is-active --quiet apache2; then
+              echo "Error: Apache is not running"
+              exit 1
+            fi
+
+            # Restart Apache service
+            sudo systemctl restart apache2 || { echo "Error: Apache restart failed"; exit 1; }
+
+            echo "Deployment completed successfully"

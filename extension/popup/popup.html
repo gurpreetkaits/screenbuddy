@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenSense</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+      color: white;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ea580c;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .record-btn {
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+    }
+
+    .record-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
+    }
+
+    .record-btn:active {
+      transform: translateY(0);
+    }
+
+    .record-icon {
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .info {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Recording Active State */
+    .recording-view {
+      display: none;
+    }
+
+    .recording-view.active {
+      display: block;
+    }
+
+    .recording-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .recording-timer {
+      font-size: 24px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .recording-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .stop-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #ef4444;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .stop-btn:hover {
+      background: #dc2626;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .open-app-btn {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #9ca3af;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .open-app-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Setup View -->
+    <div id="setupView">
+      <div class="header">
+        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4" fill="#ea580c"/>
+        </svg>
+        <div>
+          <div class="title">ScreenSense</div>
+          <div class="subtitle">Screen Recorder</div>
+        </div>
+      </div>
+
+      <button id="startRecordingBtn" class="record-btn">
+        <span class="record-icon"></span>
+        Start Recording
+      </button>
+
+      <div class="info">
+        Click to open ScreenSense and start recording your screen with audio.
+      </div>
+
+      <button id="openAppBtn" class="open-app-btn">
+        Open ScreenSense App
+      </button>
+    </div>
+
+    <!-- Recording View -->
+    <div id="recordingView" class="recording-view">
+      <div class="header">
+        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4" fill="#ea580c"/>
+        </svg>
+        <div>
+          <div class="title">ScreenSense</div>
+          <div class="subtitle">Recording in progress</div>
+        </div>
+      </div>
+
+      <div class="recording-indicator">
+        <span class="pulse-dot"></span>
+        <span class="recording-timer" id="recordingTimeDisplay">00:00</span>
+      </div>
+
+      <div class="recording-controls">
+        <button id="pauseBtn" class="control-btn" title="Pause">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+        <button id="resumeBtn" class="control-btn hidden" title="Resume">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </button>
+        <button id="stopRecordingBtn" class="stop-btn" title="Stop">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
