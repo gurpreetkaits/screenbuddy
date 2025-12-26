@@ -39,9 +39,9 @@ jobs:
               exit 1
             fi
 
-            # Reset any local changes to avoid conflicts during pull
-            git reset --hard || { echo "Error: git reset failed"; exit 1; }
-            git pull origin master || { echo "Error: git pull failed"; exit 1; }
+            # Fetch latest and force reset to match remote (handles force pushes)
+            git fetch origin master || { echo "Error: git fetch failed"; exit 1; }
+            git reset --hard origin/master || { echo "Error: git reset failed"; exit 1; }
 
             # Check if composer is available
             if ! command -v composer &> /dev/null; then
