@@ -150,6 +150,85 @@ FFMPEG_BINARIES=/path/to/ffmpeg
 FFPROBE_BINARIES=/path/to/ffprobe
 ```
 
+## Docker Setup (Recommended)
+
+The easiest way to run ScreenSense is with Docker. No need to install PHP, Node, MariaDB, or FFmpeg manually.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+### Quick Start with Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/screensense.git
+cd screensense
+
+# Copy Docker environment file
+cp .env.docker .env
+
+# Generate application key
+docker compose run --rm app php artisan key:generate
+
+# Start all services
+docker compose up -d
+
+# Run migrations
+docker compose exec app php artisan migrate
+
+# Create storage link
+docker compose exec app php artisan storage:link
+```
+
+### Access the Application
+
+| Service | URL |
+|---------|-----|
+| Backend API | http://localhost:8000 |
+| Frontend | http://localhost:5173 |
+
+### Docker Commands
+
+```bash
+# Start services
+docker compose up -d
+
+# Stop services
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# View specific service logs
+docker compose logs -f app
+docker compose logs -f queue
+
+# Run artisan commands
+docker compose exec app php artisan <command>
+
+# Run composer commands
+docker compose exec app composer <command>
+
+# Access app shell
+docker compose exec app bash
+
+# Rebuild containers (after Dockerfile changes)
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Docker Services
+
+| Service | Description | Port |
+|---------|-------------|------|
+| `app` | PHP-FPM application | 9000 (internal) |
+| `nginx` | Web server | 8000 |
+| `db` | MariaDB database | 3306 |
+| `redis` | Cache & sessions | 6379 |
+| `queue` | Queue worker | - |
+| `frontend` | Vite dev server | 5173 |
+
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Development guide and API documentation
