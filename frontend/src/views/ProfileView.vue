@@ -1,10 +1,10 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-    <!-- Page Header -->
-    <div class="mb-6 sm:mb-8">
-      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Profile Settings</h1>
-      <p class="mt-1 text-xs sm:text-sm text-gray-600">View your account information</p>
-    </div>
+  <div class="bg-gray-50 min-h-full">
+    <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <!-- Page Header -->
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Profile</h1>
+      </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -115,6 +115,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Delete Account Modal -->

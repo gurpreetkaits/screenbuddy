@@ -1,8 +1,8 @@
 <template>
-  <div class="subscription-page">
-    <div class="container">
-      <div class="header">
-        <h1 class="title">Subscription</h1>
+  <div class="bg-gray-50 min-h-full">
+    <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Subscription</h1>
       </div>
 
       <!-- Loading State -->
@@ -413,36 +413,28 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.subscription-page {
-  min-height: 100%;
-  background: #f9fafb;
-  padding: 2rem 1rem;
-}
-
-.container {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.header {
-  margin-bottom: 2rem;
-}
-
-.title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
-}
-
 /* Loading & Error States */
 .loading-state,
 .error-state {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 1rem;
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 640px) {
+  .loading-state,
+  .error-state {
+    padding: 4rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .loading-state,
+  .error-state {
+    padding: 4rem 2rem;
+  }
 }
 
 .spinner {
@@ -480,8 +472,20 @@ onMounted(() => {
 }
 
 .empty-state {
-  padding: 3rem 2rem;
+  padding: 2rem 1rem;
   text-align: center;
+}
+
+@media (min-width: 640px) {
+  .empty-state {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .empty-state {
+    padding: 3rem 2rem;
+  }
 }
 
 .empty-icon {
@@ -510,15 +514,27 @@ onMounted(() => {
 
 .empty-state > p {
   color: #6b7280;
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .empty-state > p {
+    margin: 0 0 2rem;
+  }
 }
 
 .free-tier-info {
   background: #f9fafb;
   border-radius: 8px;
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   text-align: left;
+}
+
+@media (min-width: 640px) {
+  .free-tier-info {
+    margin-bottom: 2rem;
+  }
 }
 
 .free-tier-info h3 {
@@ -592,7 +608,13 @@ onMounted(() => {
 .subscription-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .subscription-list {
+    gap: 2rem;
+  }
 }
 
 .subscription-card {
@@ -799,8 +821,14 @@ onMounted(() => {
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   border-top: none;
+}
+
+@media (min-width: 640px) {
+  .history-section-active {
+    margin-top: 2rem;
+  }
 }
 
 .history-title {
