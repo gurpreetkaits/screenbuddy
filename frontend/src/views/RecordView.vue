@@ -249,7 +249,15 @@ export default {
     const startRecording = async () => {
       try {
         // Check subscription status first
-        const subscription = await auth.fetchSubscription()
+        let subscription = null
+        try {
+          subscription = await auth.fetchSubscription()
+        } catch (subscriptionError) {
+          console.error('Error checking subscription:', subscriptionError)
+          toast.error('Unable to verify your subscription status. Please try again.')
+          return
+        }
+
         if (subscription && !subscription.can_record) {
           showUpgradeModal.value = true
           toast.warning('You have reached your video limit. Please upgrade to continue recording.')

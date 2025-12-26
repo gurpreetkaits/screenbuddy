@@ -261,6 +261,14 @@ export default {
         return null
       }
 
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        if (errorData.error === 'video_limit_reached') {
+          toast.error(errorData.message || 'You have reached your video limit. Please upgrade to continue.')
+          return null
+        }
+      }
+
       if (!response.ok) {
         throw new Error('Failed to start upload session')
       }
@@ -342,6 +350,21 @@ export default {
 
     const startRecording = async () => {
       try {
+        // Check subscription status first
+        let subscription = null
+        try {
+          subscription = await auth.fetchSubscription()
+        } catch (subscriptionError) {
+          console.error('Error checking subscription:', subscriptionError)
+          toast.error('Unable to verify your subscription status. Please try again.')
+          return
+        }
+
+        if (subscription && !subscription.can_record) {
+          toast.warning('You have reached your video limit. Please upgrade to continue recording.')
+          return
+        }
+
         isStartingRecording.value = true
 
         // Start upload session first

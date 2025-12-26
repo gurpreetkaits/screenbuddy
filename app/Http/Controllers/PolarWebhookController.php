@@ -40,13 +40,13 @@ class PolarWebhookController extends Controller
         ]);
 
         // Verify webhook signature
-        // if (!$this->verifyWebhookSignature($request)) {
-        //     Log::warning('Polar webhook signature verification failed', [
-        //         'headers' => $request->headers->all(),
-        //         'ip' => $request->ip(),
-        //     ]);
-        //     return response()->json(['error' => 'Invalid signature'], 401);
-        // }
+        if (!$this->verifyWebhookSignature($request)) {
+            Log::warning('Polar webhook signature verification failed', [
+                'headers' => $request->headers->all(),
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
 
         // Parse webhook payload
         $payload = $request->all();

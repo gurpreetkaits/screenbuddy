@@ -197,7 +197,9 @@ class SubscriptionControllerTest extends TestCase
     
     public function test_it_uses_existing_polar_customer_id_for_checkout()
     {
-        $this->user->update(['polar_customer_id' => 'cust_existing_123']);
+        // Use a valid UUID format as Polar customer IDs are UUIDs
+        $customerId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+        $this->user->update(['polar_customer_id' => $customerId]);
 
         Http::fake([
             '*/v1/checkouts/' => Http::response([
@@ -214,9 +216,9 @@ class SubscriptionControllerTest extends TestCase
         $response->assertOk();
 
         // Verify checkout was created with customer_id
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($customerId) {
             $body = json_decode($request->body(), true);
-            return isset($body['customer_id']) && $body['customer_id'] === 'cust_existing_123';
+            return isset($body['customer_id']) && $body['customer_id'] === $customerId;
         });
     }
 
