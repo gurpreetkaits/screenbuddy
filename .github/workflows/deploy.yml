@@ -26,12 +26,12 @@ jobs:
             set -o pipefail  # Return value of a pipeline is the status of the last command to exit with a non-zero status
 
             # Check if we have write permissions
-            if [ ! -w /var/www/html/screenbuddy ]; then
-              echo "Error: No write permission to /var/www/html/screenbuddy"
+            if [ ! -w /var/www/html/screensense ]; then
+              echo "Error: No write permission to /var/www/html/screensense"
               exit 1
             fi
 
-            cd /var/www/html/screenbuddy || { echo "Error: Cannot change to directory"; exit 1; }
+            cd /var/www/html/screensense || { echo "Error: Cannot change to directory"; exit 1; }
 
             # Check if git is available and working
             if ! command -v git &> /dev/null; then
@@ -62,7 +62,7 @@ jobs:
             fi
 
             # Set correct permissions
-            sudo chmod -R 775 /var/www/html/screenbuddy || { echo "Error: Cannot set directory permissions"; exit 1; }
+            sudo chmod -R 775 /var/www/html/screensense || { echo "Error: Cannot set directory permissions"; exit 1; }
 
             # Install PHP dependencies
             composer install --no-dev --optimize-autoloader || { echo "Error: composer install failed"; exit 1; }
@@ -81,7 +81,7 @@ jobs:
             fi
 
             # Install Node dependencies and build assets
-            cd /var/www/html/screenbuddy/frontend || { echo "Error: Cannot change to frontend directory"; exit 1; }
+            cd /var/www/html/screensense/frontend || { echo "Error: Cannot change to frontend directory"; exit 1; }
             npm install || { echo "Error: npm install failed"; exit 1; }
             npm run build || { echo "Error: Frontend build failed"; exit 1; }
 

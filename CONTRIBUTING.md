@@ -51,8 +51,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/screenbuddy.git
-cd screenbuddy
+git clone https://github.com/yourusername/screensense.git
+cd screensense
 
 # Install dependencies
 composer install
@@ -388,7 +388,7 @@ Releases are created automatically via GitHub Actions when a tag is pushed.
 ## Project Structure
 
 ```
-screenbuddy/
+screensense/
 ├── app/
 │   ├── Http/
 │   │   └── Controllers/   # Handle HTTP request/response only

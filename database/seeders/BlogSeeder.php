@@ -29,7 +29,7 @@ class BlogSeeder extends Seeder
             ],
             [
                 'title' => 'ScreenSense vs Loom: The Affordable Alternative That Gets the Job Done',
-                'slug' => 'screenbuddy-vs-loom-affordable-alternative',
+                'slug' => 'screensense-vs-loom-affordable-alternative',
                 'excerpt' => 'Tired of expensive screen recording subscriptions? See how ScreenSense offers the same features as Loom at a fraction of the cost.',
                 'content' => $this->getLoomAlternativeContent(),
                 'author' => 'ScreenSense Team',
