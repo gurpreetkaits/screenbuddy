@@ -2,8 +2,19 @@
 
 // Prevent duplicate injection using IIFE
 (function() {
+  // If already loaded, just show panel if requested and exit
   if (window.__screensenseContentScriptLoaded) {
-    console.log('ScreenSense content script already loaded, skipping...');
+    console.log('ScreenSense content script already loaded');
+    // Re-register message listener to ensure it works
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'showFloatingPanel') {
+        if (typeof window.__screensenseShowPanel === 'function') {
+          window.__screensenseShowPanel();
+        }
+        sendResponse({ success: true });
+      }
+      return true;
+    });
     return;
   }
   window.__screensenseContentScriptLoaded = true;
@@ -31,16 +42,36 @@ let isPaused = false;
 let recordingPanel = null;
 
 // ============================================
+// Configuration - Change ENV to switch environments
+// ============================================
+
+const ENV = 'local'; // Change to 'production' for live site
+
+const CONFIG = {
+  local: {
+    APP_URL: 'http://localhost:5173',
+    API_URL: 'http://localhost:8000'
+  },
+  production: {
+    APP_URL: 'https://record.screensense.in',
+    API_URL: 'https://record.screensense.in'
+  }
+};
+
+const SCREENSENSE_URL = CONFIG[ENV].APP_URL;
+const API_URL = CONFIG[ENV].API_URL;
+const IS_LOCAL = ENV === 'local';
+
+// ============================================
 // Website <-> Extension Sync
 // ============================================
 
-const SCREENSENSE_ORIGIN = 'http://localhost:5173'; // Development
-const SCREENSENSE_PROD_ORIGIN = 'https://screensense.app'; // Production (update as needed)
-
 function isScreenSensePage() {
-  return window.location.origin === SCREENSENSE_ORIGIN ||
-         window.location.origin === SCREENSENSE_PROD_ORIGIN ||
-         window.location.hostname === 'localhost';
+  const currentOrigin = window.location.origin;
+  return currentOrigin === CONFIG.local.APP_URL ||
+         currentOrigin === CONFIG.production.APP_URL ||
+         window.location.hostname === 'localhost' ||
+         window.location.hostname.includes('screensense.in');
 }
 
 // Check if extension context is still valid
@@ -347,6 +378,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         isPaused: mediaRecorder?.state === 'paused',
         startTime: recordingStartTime
       });
+      break;
+
+    case 'autoStartRecording':
+      // Triggered from extension popup - post message to website to auto-start
+      if (isScreenSensePage()) {
+        window.postMessage({
+          type: 'SCREENSENSE_AUTO_START',
+          options: message.options || { camera: false, microphone: true }
+        }, '*');
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false, error: 'Not on ScreenSense page' });
+      }
+      break;
+
+    case 'showFloatingPanel':
+      // Show the Loom-style floating panel
+      showFloatingRecordPanel();
+      sendResponse({ success: true });
       break;
   }
 });
@@ -826,7 +876,7 @@ async function createRecordingPanel() {
   if (!authToken) {
     // Show login required message and redirect
     alert('Please sign in to ScreenSense to record videos');
-    window.open('http://localhost:5173/login', '_blank');
+    window.open(SCREENSENSE_URL + '/login', '_blank');
     return;
   }
 
@@ -1335,7 +1385,7 @@ async function uploadToBackend(blob) {
   if (!authToken) {
     console.error('No auth token found - user not logged in');
     // Redirect to ScreenSense login
-    window.location.href = 'http://localhost:5173/login';
+    window.location.href = SCREENSENSE_URL + '/login';
     throw new Error('Not authenticated');
   }
 
@@ -1527,6 +1577,285 @@ function cleanup() {
   }
 
   mediaRecorder = null;
+}
+
+// ============================================
+// Floating Record Panel (Loom-style)
+// ============================================
+
+let floatingPanel = null;
+
+function showFloatingRecordPanel() {
+  // Remove existing panel if any
+  if (floatingPanel) {
+    floatingPanel.remove();
+    floatingPanel = null;
+    return; // Toggle behavior
+  }
+
+  // Load saved options
+  chrome.storage.local.get(['recordingOptions'], (result) => {
+    const options = result.recordingOptions || { camera: false, microphone: true };
+    createFloatingPanel(options);
+  });
+}
+
+// Expose globally for duplicate script handling
+window.__screensenseShowPanel = showFloatingRecordPanel;
+
+function createFloatingPanel(savedOptions) {
+  // Create overlay to detect outside clicks
+  const overlay = document.createElement('div');
+  overlay.id = 'screensense-floating-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2147483645;
+    background: transparent;
+  `;
+
+  // Create the floating panel
+  floatingPanel = document.createElement('div');
+  floatingPanel.id = 'screensense-floating-panel';
+  floatingPanel.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 320px;
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1);
+    z-index: 2147483646;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: white;
+    animation: screensense-panel-slide-in 0.3s ease-out;
+  `;
+
+  floatingPanel.innerHTML = `
+    <style>
+      @keyframes screensense-panel-slide-in {
+        from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      #screensense-floating-panel * {
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ss-toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        cursor: pointer;
+      }
+      .ss-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .ss-toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.2);
+        transition: 0.3s;
+        border-radius: 24px;
+      }
+      .ss-toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+      .ss-toggle input:checked + .ss-toggle-slider {
+        background-color: #ea580c;
+      }
+      .ss-toggle input:checked + .ss-toggle-slider:before {
+        transform: translateX(20px);
+      }
+    </style>
+
+    <!-- Header -->
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4" fill="#ea580c"/>
+        </svg>
+        <span style="font-size: 16px; font-weight: 600; color: #ea580c;">ScreenSense</span>
+      </div>
+      <button id="ss-close-btn" style="background: none; border: none; cursor: pointer; padding: 4px; color: #9ca3af; transition: color 0.2s;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Options -->
+    <div style="padding: 20px;">
+      <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Recording Options</div>
+
+      <!-- Camera Option -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="ss-camera-icon" style="width: 36px; height: 36px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
+              <path d="M23 7l-7 5 7 5V7z"/>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 14px; font-weight: 500;">Camera</div>
+            <div style="font-size: 11px; color: #6b7280;">Show your face</div>
+          </div>
+        </div>
+        <label class="ss-toggle">
+          <input type="checkbox" id="ss-camera-toggle" ${savedOptions.camera ? 'checked' : ''}>
+          <span class="ss-toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Microphone Option -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="ss-mic-icon" style="width: 36px; height: 36px; background: ${savedOptions.microphone ? 'rgba(234, 88, 12, 0.2)' : 'rgba(255,255,255,0.1)'}; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${savedOptions.microphone ? '#ea580c' : '#9ca3af'}" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 14px; font-weight: 500;">Microphone</div>
+            <div style="font-size: 11px; color: #6b7280;">Record audio</div>
+          </div>
+        </div>
+        <label class="ss-toggle">
+          <input type="checkbox" id="ss-mic-toggle" ${savedOptions.microphone ? 'checked' : ''}>
+          <span class="ss-toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Record Button -->
+    <div style="padding: 0 20px 20px;">
+      <button id="ss-record-btn" style="
+        width: 100%;
+        padding: 14px 20px;
+        background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+        transition: all 0.2s ease;
+      ">
+        <div style="width: 16px; height: 16px; background: white; border-radius: 50%;"></div>
+        Start Recording
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(floatingPanel);
+
+  // Close button handler
+  document.getElementById('ss-close-btn').addEventListener('click', closeFloatingPanel);
+
+  // Click outside to close
+  overlay.addEventListener('click', closeFloatingPanel);
+
+  // Toggle handlers
+  const cameraToggle = document.getElementById('ss-camera-toggle');
+  const micToggle = document.getElementById('ss-mic-toggle');
+  const cameraIcon = document.getElementById('ss-camera-icon');
+  const micIcon = document.getElementById('ss-mic-icon');
+
+  cameraToggle.addEventListener('change', () => {
+    if (cameraToggle.checked) {
+      cameraIcon.style.background = 'rgba(234, 88, 12, 0.2)';
+      cameraIcon.querySelector('svg').setAttribute('stroke', '#ea580c');
+    } else {
+      cameraIcon.style.background = 'rgba(255,255,255,0.1)';
+      cameraIcon.querySelector('svg').setAttribute('stroke', '#9ca3af');
+    }
+    saveFloatingPanelOptions();
+  });
+
+  micToggle.addEventListener('change', () => {
+    if (micToggle.checked) {
+      micIcon.style.background = 'rgba(234, 88, 12, 0.2)';
+      micIcon.querySelector('svg').setAttribute('stroke', '#ea580c');
+    } else {
+      micIcon.style.background = 'rgba(255,255,255,0.1)';
+      micIcon.querySelector('svg').setAttribute('stroke', '#9ca3af');
+    }
+    saveFloatingPanelOptions();
+  });
+
+  // Initialize camera icon based on saved state
+  if (savedOptions.camera) {
+    cameraIcon.style.background = 'rgba(234, 88, 12, 0.2)';
+    cameraIcon.querySelector('svg').setAttribute('stroke', '#ea580c');
+  }
+
+  // Record button handler
+  document.getElementById('ss-record-btn').addEventListener('click', () => {
+    const options = {
+      camera: cameraToggle.checked,
+      microphone: micToggle.checked
+    };
+
+    // Save options and set auto-start flag
+    chrome.storage.local.set({
+      autoStartRecording: true,
+      recordingOptions: options
+    }, () => {
+      // Navigate to record page
+      window.location.href = SCREENSENSE_URL + '/record?autostart=true';
+    });
+  });
+}
+
+function saveFloatingPanelOptions() {
+  const cameraToggle = document.getElementById('ss-camera-toggle');
+  const micToggle = document.getElementById('ss-mic-toggle');
+
+  if (cameraToggle && micToggle) {
+    chrome.storage.local.set({
+      recordingOptions: {
+        camera: cameraToggle.checked,
+        microphone: micToggle.checked
+      }
+    });
+  }
+}
+
+function closeFloatingPanel() {
+  const overlay = document.getElementById('screensense-floating-overlay');
+  if (overlay) overlay.remove();
+  if (floatingPanel) {
+    floatingPanel.remove();
+    floatingPanel = null;
+  }
 }
 
 })(); // End of IIFE

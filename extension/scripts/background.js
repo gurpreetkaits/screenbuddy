@@ -1,5 +1,8 @@
 // Background service worker for ScreenSense extension
 
+// Import config
+importScripts('../config.js');
+
 let mediaRecorder = null;
 let recordedChunks = [];
 let currentTabId = null;
@@ -341,4 +344,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       }, 200);
     }
   }
+});
+
+// Handle extension icon click - open record page directly
+chrome.action.onClicked.addListener(async (tab) => {
+  console.log('Extension icon clicked, opening record page');
+
+  // Open the record page with autostart
+  chrome.tabs.create({ url: SCREENSENSE_URL + '/record?autostart=true' });
 });

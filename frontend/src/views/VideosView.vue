@@ -75,34 +75,6 @@
             </div>
           </div>
 
-          <!-- Free tier with quota remaining -->
-          <div
-            v-else-if="!subscription.is_active && subscription.remaining_quota !== null"
-            class="bg-blue-50 border border-blue-200 rounded-lg p-4"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="font-semibold text-gray-900">Free Plan</h3>
-                  <p class="text-sm text-gray-600">
-                    {{ subscription.remaining_quota }} video{{ subscription.remaining_quota === 1 ? '' : 's' }} remaining
-                  </p>
-                </div>
-              </div>
-              <button
-                @click="openUpgradeModal"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
-              >
-                Upgrade
-              </button>
-            </div>
-          </div>
-
           <!-- Pro tier -->
           <div
             v-else-if="subscription.is_active"
@@ -518,6 +490,14 @@
       @close="showUpgradeModal = false"
       @success="handleUpgradeSuccess"
     />
+
+    <!-- Recording Modal -->
+    <SBRecordingModal
+      :show="showRecordingModal"
+      @close="showRecordingModal = false"
+      @recording-complete="handleRecordingComplete"
+      @upgrade="handleRecordingUpgrade"
+    />
   </div>
 </template>
 
@@ -528,12 +508,14 @@ import videoService from '@/services/videoService'
 import toast from '@/services/toastService'
 import SBDeleteModal from '@/components/Global/SBDeleteModal.vue'
 import SBUpgradeModal from '@/components/Global/SBUpgradeModal.vue'
+import SBRecordingModal from '@/components/Global/SBRecordingModal.vue'
 
 export default {
   name: 'VideosView',
   components: {
     SBDeleteModal,
-    SBUpgradeModal
+    SBUpgradeModal,
+    SBRecordingModal
   },
   setup() {
     const auth = useAuth()
@@ -559,6 +541,9 @@ export default {
 
     // Upgrade modal state
     const showUpgradeModal = ref(false)
+
+    // Recording modal state
+    const showRecordingModal = ref(false)
 
     // Sort state
     const sortBy = ref('date_desc')
@@ -778,7 +763,18 @@ export default {
     })
 
     const goToRecord = () => {
-      window.location.href = '/record'
+      showRecordingModal.value = true
+    }
+
+    const handleRecordingComplete = (video) => {
+      // Video recorded successfully, will redirect to video page
+      showRecordingModal.value = false
+    }
+
+    const handleRecordingUpgrade = () => {
+      // User clicked upgrade in recording modal, open upgrade modal
+      showRecordingModal.value = false
+      showUpgradeModal.value = true
     }
 
     const openVideo = (id) => {
@@ -929,7 +925,11 @@ export default {
       // Upgrade modal
       showUpgradeModal,
       handleUpgradeSuccess,
-      openUpgradeModal
+      openUpgradeModal,
+      // Recording modal
+      showRecordingModal,
+      handleRecordingComplete,
+      handleRecordingUpgrade
     }
   }
 }

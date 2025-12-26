@@ -12,7 +12,7 @@
     }
 
     body {
-      width: 280px;
+      width: 300px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
       color: white;
@@ -46,6 +46,116 @@
       margin-top: 2px;
     }
 
+    /* Options Card */
+    .options-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .options-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .option-row:last-child {
+      border-bottom: none;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .option-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-icon svg {
+      width: 18px;
+      height: 18px;
+      color: #9ca3af;
+    }
+
+    .option-icon.active {
+      background: rgba(234, 88, 12, 0.2);
+    }
+
+    .option-icon.active svg {
+      color: #ea580c;
+    }
+
+    .option-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.2);
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background-color: #ea580c;
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Record Button */
     .record-btn {
       width: 100%;
       padding: 14px 20px;
@@ -73,22 +183,17 @@
       transform: translateY(0);
     }
 
+    .record-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .record-icon {
       width: 18px;
       height: 18px;
       background: white;
       border-radius: 50%;
-    }
-
-    .info {
-      margin-top: 16px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      font-size: 12px;
-      color: #9ca3af;
-      text-align: center;
-      line-height: 1.5;
     }
 
     /* Recording Active State */
@@ -210,14 +315,51 @@
         </div>
       </div>
 
+      <!-- Recording Options -->
+      <div class="options-card">
+        <div class="options-title">Recording Options</div>
+
+        <!-- Camera Toggle -->
+        <div class="option-row">
+          <div class="option-label">
+            <div class="option-icon" id="cameraIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 7l-7 5 7 5V7z"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </div>
+            <span class="option-text">Camera</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="cameraToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Microphone Toggle -->
+        <div class="option-row">
+          <div class="option-label">
+            <div class="option-icon active" id="micIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </div>
+            <span class="option-text">Microphone</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="micToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
       <button id="startRecordingBtn" class="record-btn">
         <span class="record-icon"></span>
         Start Recording
       </button>
-
-      <div class="info">
-        Click to open ScreenSense and start recording your screen with audio.
-      </div>
 
       <button id="openAppBtn" class="open-app-btn">
         Open ScreenSense App
@@ -263,6 +405,7 @@
     </div>
   </div>
 
+  <script src="../config.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

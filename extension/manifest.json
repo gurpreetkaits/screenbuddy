@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ScreenSense - Screen Recorder",
   "version": "1.0.0",
-  "description": "Record your screen with camera and microphone, just like Loom",
+  "description": "Record your screen with camera and microphone",
   "permissions": [
     "activeTab",
     "tabs",
