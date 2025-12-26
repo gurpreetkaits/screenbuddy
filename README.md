@@ -185,8 +185,8 @@ docker compose exec app php artisan storage:link
 
 | Service | URL |
 |---------|-----|
-| Backend API | http://localhost:8000 |
-| Frontend | http://localhost:5173 |
+| Frontend | http://localhost:3333 |
+| Backend API | http://localhost:8888 |
 
 ### Docker Commands
 
@@ -223,11 +223,11 @@ docker compose up -d
 | Service | Description | Port |
 |---------|-------------|------|
 | `app` | PHP-FPM application | 9000 (internal) |
-| `nginx` | Web server | 8000 |
-| `db` | MariaDB database | 3306 |
-| `redis` | Cache & sessions | 6379 |
+| `nginx` | Web server | 8888 |
+| `db` | MariaDB database | 3307 |
+| `redis` | Cache & sessions | 6380 |
 | `queue` | Queue worker | - |
-| `frontend` | Vite dev server | 5173 |
+| `frontend` | Vite dev server | 3333 |
 
 ## Documentation
 
