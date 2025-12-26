@@ -4,8 +4,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Laravel](https://img.shields.io/badge/Laravel-12-red.svg)](https://laravel.com)
-[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
-
 ## What is ScreenSense?
 
 ScreenSense is an open-source screen recording and sharing platform that makes it easy to capture your screen, automatically generate shareable links, and collaborate with your team. Built with modern web technologies, it provides a seamless recording experience with instant sharing capabilities.
@@ -233,7 +231,6 @@ ScreenSense is open-source software licensed under the [MIT License](LICENSE).
 
 Built with amazing open-source technologies:
 - [Laravel](https://laravel.com)
-- [React](https://reactjs.org)
 - [Spatie Media Library](https://spatie.be/docs/laravel-medialibrary)
 - [FFmpeg](https://ffmpeg.org)
 - [Tailwind CSS](https://tailwindcss.com)
