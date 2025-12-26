@@ -1,6 +1,6 @@
 @extends('layouts.blog')
 
-@section('title', $blog->meta_title ?? $blog->title . ' | ScreenBuddy Blog')
+@section('title', $blog->meta_title ?? $blog->title . ' | ScreenSense Blog')
 @section('meta_description', $blog->meta_description ?? $blog->excerpt)
 @section('og_title', $blog->title)
 @section('og_description', $blog->excerpt)
@@ -427,7 +427,7 @@
 
         <!-- CTA -->
         <div class="cta-section">
-            <h2>Ready to try ScreenBuddy?</h2>
+            <h2>Ready to try ScreenSense?</h2>
             <p>Start recording your screen for free. No credit card required.</p>
             <a href="{{ config('app.frontend_url', config('app.url')) }}/login" class="cta-button">Get Started Free</a>
         </div>

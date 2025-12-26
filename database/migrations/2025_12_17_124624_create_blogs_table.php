@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('excerpt')->nullable();
             $table->longText('content');
             $table->string('featured_image')->nullable();
-            $table->string('author')->default('ScreenBuddy Team');
+            $table->string('author')->default('ScreenSense Team');
             $table->string('category')->default('Product');
             $table->json('tags')->nullable();
             $table->string('meta_title')->nullable();

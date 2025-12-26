@@ -1,4 +1,4 @@
-# ScreenBuddy
+# ScreenSense
 
 > Screen recording and sharing made simple. Record, share, and collaborate with instant shareable links.
 
@@ -6,9 +6,9 @@
 [![Laravel](https://img.shields.io/badge/Laravel-12-red.svg)](https://laravel.com)
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
 
-## What is ScreenBuddy?
+## What is ScreenSense?
 
-ScreenBuddy is an open-source screen recording and sharing platform that makes it easy to capture your screen, automatically generate shareable links, and collaborate with your team. Built with modern web technologies, it provides a seamless recording experience with instant sharing capabilities.
+ScreenSense is an open-source screen recording and sharing platform that makes it easy to capture your screen, automatically generate shareable links, and collaborate with your team. Built with modern web technologies, it provides a seamless recording experience with instant sharing capabilities.
 
 ### Key Features
 
@@ -202,7 +202,7 @@ If you discover a security vulnerability, please review our [Security Policy](SE
 
 ## Business Model
 
-ScreenBuddy is **open-source software** with an optional commercial subscription service. The entire codebase is available under the MIT License, allowing you to:
+ScreenSense is **open-source software** with an optional commercial subscription service. The entire codebase is available under the MIT License, allowing you to:
 
 - Use it for free
 - Modify it for your needs
@@ -220,7 +220,7 @@ This model is similar to other successful open-source projects like GitLab, Ghos
 
 ## License
 
-ScreenBuddy is open-source software licensed under the [MIT License](LICENSE).
+ScreenSense is open-source software licensed under the [MIT License](LICENSE).
 
 ## Support
 
@@ -250,4 +250,4 @@ Built with amazing open-source technologies:
 
 ---
 
-**Made with ❤️ by the ScreenBuddy community**
+**Made with ❤️ by the ScreenSense community**

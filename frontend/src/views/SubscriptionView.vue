@@ -100,7 +100,7 @@
           <div class="subscription-header">
             <div class="plan-info">
               <span class="plan-badge">Pro</span>
-              <h2>ScreenBuddy Pro</h2>
+              <h2>ScreenSense Pro</h2>
             </div>
             <span class="status-badge" :class="statusClass">{{ statusText }}</span>
           </div>

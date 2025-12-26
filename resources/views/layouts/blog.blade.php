@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Blog | ScreenBuddy')</title>
-    <meta name="description" content="@yield('meta_description', 'Tips, guides, and insights about screen recording and async communication from ScreenBuddy.')">
+    <title>@yield('title', 'Blog | ScreenSense')</title>
+    <meta name="description" content="@yield('meta_description', 'Tips, guides, and insights about screen recording and async communication from ScreenSense.')">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="@yield('og_title', 'ScreenBuddy Blog')">
+    <meta property="og:title" content="@yield('og_title', 'ScreenSense Blog')">
     <meta property="og:description" content="@yield('og_description', 'Tips, guides, and insights about screen recording.')">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ url()->current() }}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('twitter_title', 'ScreenBuddy Blog')">
+    <meta name="twitter:title" content="@yield('twitter_title', 'ScreenSense Blog')">
     <meta name="twitter:description" content="@yield('twitter_description', 'Tips, guides, and insights about screen recording.')">
 
     <!-- Canonical URL -->
@@ -210,7 +210,7 @@
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                 </div>
-                ScreenBuddy
+                ScreenSense
             </a>
             <div class="nav-links">
                 <a href="/blog" class="nav-link">Blog</a>
@@ -235,7 +235,7 @@
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                 </div>
-                ScreenBuddy
+                ScreenSense
             </div>
             <p class="footer-text">Screen recording made simple. No watermarks, no hassle.</p>
             <div class="footer-links">
