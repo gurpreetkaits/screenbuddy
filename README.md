@@ -63,8 +63,8 @@ _Coming soon_
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/screenbuddy.git
-   cd screenbuddy
+   git clone https://github.com/yourusername/screensense.git
+   cd screensense
    ```
 
 2. **Install backend dependencies**
@@ -88,7 +88,7 @@ _Coming soon_
 5. **Update `.env` with your database credentials**
    ```env
    DB_CONNECTION=mariadb
-   DB_DATABASE=screenbuddy
+   DB_DATABASE=screensense
    DB_USERNAME=your_username
    DB_PASSWORD=your_password
    ```
@@ -209,7 +209,7 @@ ScreenSense is **open-source software** with an optional commercial subscription
 - Self-host your own instance
 - Contribute improvements back
 
-We offer a **hosted subscription service** at [screenbuddy.com](https://screenbuddy.com) with premium features:
+We offer a **hosted subscription service** at [screensense.com](https://screensense.com) with premium features:
 - Unlimited storage
 - Advanced analytics
 - Priority support
@@ -225,9 +225,9 @@ ScreenSense is open-source software licensed under the [MIT License](LICENSE).
 ## Support
 
 - **Documentation**: Check our [docs](./docs) folder
-- **Issues**: [GitHub Issues](https://github.com/yourusername/screenbuddy/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/screenbuddy/discussions)
-- **Email**: support@screenbuddy.com
+- **Issues**: [GitHub Issues](https://github.com/yourusername/screensense/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/screensense/discussions)
+- **Email**: support@screensense.com
 
 ## Acknowledgments
 
