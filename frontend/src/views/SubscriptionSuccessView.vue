@@ -65,6 +65,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || ''
+
 const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
@@ -91,7 +93,7 @@ async function handleCheckoutSuccess() {
 
   try {
     // Call checkout success endpoint to create subscription immediately
-    const response = await fetch('/api/subscription/checkout/success', {
+    const response = await fetch(`${API_BASE_URL}/api/subscription/checkout/success`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${auth.token.value}`,

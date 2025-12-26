@@ -11,9 +11,8 @@
 @push('styles')
 <style>
     .article-header {
-        background: white;
-        border-bottom: 1px solid #e5e7eb;
         padding: 3rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .article-header-content {
@@ -37,7 +36,7 @@
     }
 
     .breadcrumb a:hover {
-        color: #dc2626;
+        color: #f97316;
     }
 
     .breadcrumb svg {
@@ -51,11 +50,11 @@
         gap: 1rem;
         margin-bottom: 1rem;
         font-size: 0.875rem;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .article-category {
-        background: #fff7ed;
+        background: rgba(234, 88, 12, 0.15);
         color: #ea580c;
         padding: 0.25rem 0.75rem;
         border-radius: 999px;
@@ -66,7 +65,7 @@
     .article-title {
         font-size: 2.5rem;
         font-weight: 700;
-        color: #1f2937;
+        color: #ffffff;
         line-height: 1.2;
         margin-bottom: 1.5rem;
     }
@@ -80,7 +79,7 @@
     .author-avatar {
         width: 40px;
         height: 40px;
-        background: #fff7ed;
+        background: rgba(234, 88, 12, 0.15);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -91,7 +90,7 @@
 
     .author-name {
         font-weight: 500;
-        color: #1f2937;
+        color: rgba(255, 255, 255, 0.9);
     }
 
     /* Article Content */
@@ -104,13 +103,13 @@
     .prose {
         font-size: 1.125rem;
         line-height: 1.8;
-        color: #374151;
+        color: rgba(255, 255, 255, 0.8);
     }
 
     .prose h2 {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #1f2937;
+        color: #ffffff;
         margin-top: 2.5rem;
         margin-bottom: 1rem;
     }
@@ -118,7 +117,7 @@
     .prose h3 {
         font-size: 1.375rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #ffffff;
         margin-top: 2rem;
         margin-bottom: 0.75rem;
     }
@@ -129,7 +128,7 @@
 
     .prose p.lead {
         font-size: 1.25rem;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.6);
         line-height: 1.7;
     }
 
@@ -152,20 +151,20 @@
 
     .prose strong {
         font-weight: 600;
-        color: #1f2937;
+        color: #ffffff;
     }
 
     .prose blockquote {
         border-left: 4px solid #ea580c;
         padding: 1rem 1.5rem;
         margin: 1.5rem 0;
-        background: #fff7ed;
+        background: rgba(234, 88, 12, 0.1);
         border-radius: 0 8px 8px 0;
     }
 
     .prose blockquote p {
         font-style: italic;
-        color: #374151;
+        color: rgba(255, 255, 255, 0.8);
         margin-bottom: 0;
     }
 
@@ -173,7 +172,7 @@
         display: block;
         margin-top: 0.75rem;
         font-size: 0.875rem;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.5);
         font-style: normal;
     }
 
@@ -184,14 +183,15 @@
     }
 
     .prose th, .prose td {
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 0.75rem 1rem;
         text-align: left;
     }
 
     .prose th {
-        background: #f9fafb;
+        background: rgba(255, 255, 255, 0.05);
         font-weight: 600;
+        color: #ffffff;
     }
 
     .prose a {
@@ -201,20 +201,41 @@
     }
 
     .prose a:hover {
-        color: #dc2626;
+        color: #f97316;
+    }
+
+    .prose code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    .prose pre {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+    }
+
+    .prose pre code {
+        background: none;
+        padding: 0;
     }
 
     /* Tags */
     .article-tags {
         margin-top: 3rem;
         padding-top: 2rem;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .tags-title {
         font-size: 0.875rem;
         font-weight: 500;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.5);
         margin-bottom: 0.75rem;
     }
 
@@ -225,24 +246,25 @@
     }
 
     .tag {
-        background: #f3f4f6;
-        color: #374151;
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.7);
         padding: 0.375rem 0.875rem;
         border-radius: 999px;
         font-size: 0.875rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     /* Share */
     .article-share {
         margin-top: 2rem;
         padding-top: 2rem;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .share-title {
         font-size: 0.875rem;
         font-weight: 500;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.5);
         margin-bottom: 0.75rem;
     }
 
@@ -254,24 +276,25 @@
     .share-button {
         width: 40px;
         height: 40px;
-        background: #f3f4f6;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s;
+        transition: all 0.2s;
         cursor: pointer;
-        border: none;
     }
 
     .share-button:hover {
-        background: #e5e7eb;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(234, 88, 12, 0.3);
     }
 
     .share-button svg {
         width: 20px;
         height: 20px;
-        color: #374151;
+        color: rgba(255, 255, 255, 0.7);
     }
 
     /* CTA */
@@ -300,7 +323,7 @@
         background: white;
         color: #ea580c;
         padding: 0.875rem 2rem;
-        border-radius: 999px;
+        border-radius: 12px;
         font-weight: 600;
         transition: transform 0.2s, box-shadow 0.2s;
     }
@@ -316,11 +339,12 @@
         bottom: 2rem;
         left: 50%;
         transform: translateX(-50%) translateY(100px);
-        background: #1f2937;
-        color: white;
+        background: #ffffff;
+        color: #0a0a0b;
         padding: 0.75rem 1.5rem;
         border-radius: 8px;
         font-size: 0.875rem;
+        font-weight: 500;
         opacity: 0;
         transition: transform 0.3s, opacity 0.3s;
         z-index: 1000;

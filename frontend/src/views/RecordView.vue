@@ -653,8 +653,34 @@ export default {
       }
     }
 
-    onMounted(() => {
-      // Component mounted
+    onMounted(async () => {
+      // Check for auto-start from extension (URL parameter)
+      const urlParams = new URLSearchParams(window.location.search)
+      const autostart = urlParams.get('autostart')
+
+      if (autostart === 'true') {
+        console.log('Auto-start recording triggered from extension')
+
+        // Clear the URL parameter
+        window.history.replaceState({}, '', '/record')
+
+        // Small delay to ensure UI is ready, then start recording
+        setTimeout(() => {
+          console.log('Calling startRecording()...')
+          startRecording()
+        }, 800)
+      }
+
+      // Listen for auto-start message from extension content script
+      window.addEventListener('message', (event) => {
+        if (event.data?.type === 'SCREENSENSE_AUTO_START') {
+          console.log('Auto-start message received from extension')
+          if (event.data.options) {
+            recordingOptions.value.microphone = event.data.options.microphone !== false
+          }
+          startRecording()
+        }
+      })
     })
 
     onUnmounted(() => {

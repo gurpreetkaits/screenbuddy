@@ -47,7 +47,7 @@ services:
     volumes:
       - dbdata:/var/lib/mysql
     ports:
-      - "${DB_PORT:-3307}:3306"
+      - "${DOCKER_DB_PORT:-13306}:3306"
     networks:
       - screensense
 
@@ -57,7 +57,7 @@ services:
     container_name: screensense-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "${DOCKER_REDIS_PORT:-16379}:6379"
     networks:
       - screensense
 

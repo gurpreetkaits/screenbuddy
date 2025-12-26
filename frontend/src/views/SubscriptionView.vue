@@ -226,6 +226,8 @@ import SBUpgradeModal from '@/components/Global/SBUpgradeModal.vue'
 import { useAuth } from '@/stores/auth'
 import toast from '@/services/toastService'
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || ''
+
 const router = useRouter()
 const auth = useAuth()
 
@@ -274,7 +276,7 @@ async function loadSubscription() {
 
 async function fetchHistory() {
   try {
-    const response = await fetch('/api/subscription/history', {
+    const response = await fetch(`${API_BASE_URL}/api/subscription/history`, {
       headers: {
         'Authorization': `Bearer ${auth.token.value}`,
         'Accept': 'application/json',
@@ -339,7 +341,7 @@ async function cancelSubscription() {
   canceling.value = true
 
   try {
-    const response = await fetch('/api/subscription/cancel', {
+    const response = await fetch(`${API_BASE_URL}/api/subscription/cancel`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${auth.token.value}`,
@@ -368,7 +370,7 @@ async function openBillingPortal() {
   loadingPortal.value = true
 
   try {
-    const response = await fetch('/api/subscription/portal', {
+    const response = await fetch(`${API_BASE_URL}/api/subscription/portal`, {
       headers: {
         'Authorization': `Bearer ${auth.token.value}`,
         'Accept': 'application/json',

@@ -79,6 +79,8 @@ import { ref, computed, watch } from 'vue'
 import SBModal from './SBModal.vue'
 import { useAuth } from '@/stores/auth'
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || ''
+
 const props = defineProps({
   show: Boolean,
 })
@@ -107,7 +109,7 @@ async function startCheckout() {
   error.value = null
 
   try {
-    const response = await fetch('/api/subscription/checkout', {
+    const response = await fetch(`${API_BASE_URL}/api/subscription/checkout`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${auth.token.value}`,
