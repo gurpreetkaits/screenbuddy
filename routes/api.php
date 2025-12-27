@@ -3,7 +3,6 @@
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\PolarWebhookController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\SubscriptionController;
@@ -50,15 +49,7 @@ Route::get('/test', function () {
 // PUBLIC ROUTES (No authentication required)
 // ============================================
 
-// Polar webhook - now handled by laravel-polar package
-// The package automatically registers the webhook route at: POST /polar/webhook
-// Configure this URL in your Polar dashboard: https://yourdomain.com/polar/webhook
-// Custom webhook handling has been replaced by the package's automatic handling
-// If you need custom webhook logic, create Laravel event listeners for Polar events
-//
-// Old custom route (deprecated):
-// Route::post('/webhooks/polar', [PolarWebhookController::class, 'handleWebhook'])
-//     ->name('webhooks.polar');
+// Polar webhook handled by laravel-polar package at: POST /polar/webhook
 
 // Public video sharing - anyone can watch
 Route::get('/share/video/{token}', [VideoController::class, 'viewShared']);

@@ -21,9 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'polar/*',
         ]);
 
-        // Log all polar webhook requests
-        $middleware->prepend(\App\Http\Middleware\LogPolarWebhook::class);
-
         // Configure auth middleware to return JSON 401 for API routes instead of redirecting
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {

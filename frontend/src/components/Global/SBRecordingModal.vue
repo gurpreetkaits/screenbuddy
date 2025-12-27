@@ -312,10 +312,17 @@ export default {
     }
 
     const checkSubscription = async () => {
+      console.log('[RecordingModal] Checking subscription limit from backend...')
       isCheckingSubscription.value = true
       try {
         const subscription = await auth.fetchSubscription()
         canRecordVideo.value = subscription ? subscription.can_record : true
+        console.log('[RecordingModal] Backend response:', {
+          can_record: canRecordVideo.value,
+          videos_count: subscription?.videos_count,
+          remaining_quota: subscription?.remaining_quota,
+          is_active: subscription?.is_active
+        })
       } catch (err) {
         console.error('Error checking subscription:', err)
         // Allow recording if check fails (will be checked again on server)
@@ -711,6 +718,7 @@ export default {
     // Watch for modal open to check subscription
     watch(() => props.show, (newVal) => {
       if (newVal) {
+        console.log('[RecordingModal] Modal opened, fetching fresh subscription status from backend...')
         checkSubscription()
       } else if (!isRecording.value && !isFinishing.value && !isSaving.value) {
         resetState()

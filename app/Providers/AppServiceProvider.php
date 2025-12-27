@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Listeners\LogPolarWebhookReceived;
 use Danestves\LaravelPolar\Events\SubscriptionActive;
 use Danestves\LaravelPolar\Events\SubscriptionCanceled;
 use Danestves\LaravelPolar\Events\SubscriptionCreated;
@@ -27,8 +26,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Log all Polar webhook events
-        Event::listen(WebhookReceived::class, LogPolarWebhookReceived::class);
+        // Log incoming Polar webhooks
+        Event::listen(WebhookReceived::class, function ($event) {
+            Log::channel('daily')->info('Polar webhook received', [
+                'type' => $event->payload['type'] ?? 'unknown',
+                'payload' => $event->payload,
+            ]);
+        });
 
         // Sync User model when subscription is created
         Event::listen(SubscriptionCreated::class, function ($event) {

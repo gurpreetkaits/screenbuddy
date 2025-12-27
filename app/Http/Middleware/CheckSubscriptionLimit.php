@@ -17,7 +17,7 @@ class CheckSubscriptionLimit
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'error' => 'unauthenticated',
                 'message' => 'Authentication required to record videos.',
@@ -25,14 +25,19 @@ class CheckSubscriptionLimit
         }
 
         // Check if user can record more videos
-        if (!$user->canRecordVideo()) {
+        if (! $user->canRecordVideo()) {
+            $subscription = $user->subscription();
+            $currentPlan = $subscription && $subscription->active() ? 'pro' : 'free';
+
             return response()->json([
                 'error' => 'video_limit_reached',
-                'message' => 'You have reached your video limit. Upgrade to Pro to continue recording.',
-                'current_plan' => $user->subscription_status,
+                'message' => 'Limit Reached',
+                'detail' => 'You have reached your video limit. Upgrade to Pro to continue recording.',
+                'current_plan' => $currentPlan,
+                'is_active' => $user->hasActiveSubscription(),
                 'videos_count' => $user->getVideosCount(),
                 'remaining_quota' => $user->getRemainingVideoQuota(),
-                'upgrade_url' => config('services.frontend.url') . '/subscription',
+                'upgrade_url' => config('services.frontend.url').'/subscription',
             ], 403);
         }
 

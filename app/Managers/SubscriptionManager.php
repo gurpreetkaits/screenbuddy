@@ -13,39 +13,62 @@ class SubscriptionManager
 
     public function getSubscriptionStatus(User $user): array
     {
+        // Get subscription from the package - this is the source of truth
+        $subscription = $user->subscription();
+
+        // Use package methods where available, fall back to User fields for backward compatibility
         return [
-            'status' => $user->subscription_status ?? 'free',
-            'is_active' => $user->hasActiveSubscription(),
+            'status' => $subscription ? $subscription->status->value : ($user->subscription_status ?? 'free'),
+            'is_active' => $subscription ? $subscription->active() : $user->hasActiveSubscription(),
             'can_record' => $user->canRecordVideo(),
             'videos_count' => $user->getVideosCount(),
             'remaining_quota' => $user->getRemainingVideoQuota(),
-            'started_at' => $user->subscription_started_at,
-            'expires_at' => $user->subscription_expires_at,
-            'canceled_at' => $user->subscription_canceled_at,
-            'is_in_grace_period' => $user->isSubscriptionInGracePeriod(),
+            'started_at' => $subscription?->created_at ?? $user->subscription_started_at,
+            'expires_at' => $subscription?->current_period_end ?? $user->subscription_expires_at,
+            'canceled_at' => $subscription?->ends_at ?? $user->subscription_canceled_at,
+            'is_in_grace_period' => $subscription ? $subscription->onGracePeriod() : $user->isSubscriptionInGracePeriod(),
+            'on_trial' => $subscription ? $subscription->onTrial() : false,
+            'trial_ends_at' => $subscription?->trial_ends_at,
         ];
     }
 
     public function getSubscriptionHistory(User $user): array
     {
-        return $this->subscriptions->getUserSubscriptionHistory($user)
-            ->map(function ($item) {
+        // Use the package's orders relationship instead of custom SubscriptionHistory
+        return $user->orders()
+            ->orderBy('ordered_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(function ($order) {
                 return [
-                    'id' => $item->id,
-                    'event_type' => $item->event_type,
-                    'event_label' => $item->event_label,
-                    'status' => $item->status,
-                    'period_start' => $item->period_start,
-                    'period_end' => $item->period_end,
-                    'amount' => $item->amount,
-                    'formatted_amount' => $item->formatted_amount,
-                    'currency' => $item->currency,
-                    'plan_name' => $item->plan_name,
-                    'plan_interval' => $item->plan_interval,
-                    'created_at' => $item->created_at,
+                    'id' => $order->id,
+                    'event_type' => $order->billing_reason,
+                    'event_label' => $this->getOrderEventLabel($order->billing_reason),
+                    'status' => $order->status->value,
+                    'period_start' => null, // Orders don't have period info
+                    'period_end' => null,
+                    'amount' => $order->amount,
+                    'formatted_amount' => '$'.number_format($order->amount / 100, 2),
+                    'currency' => $order->currency,
+                    'plan_name' => null, // Would need to fetch product info
+                    'plan_interval' => null,
+                    'created_at' => $order->ordered_at,
                 ];
             })
             ->toArray();
+    }
+
+    /**
+     * Get human-readable label for order billing reason
+     */
+    private function getOrderEventLabel(string $billingReason): string
+    {
+        return match ($billingReason) {
+            'subscription_create' => 'Subscription Started',
+            'subscription_cycle' => 'Subscription Renewed',
+            'subscription_update' => 'Subscription Updated',
+            default => ucfirst(str_replace('_', ' ', $billingReason)),
+        };
     }
 
     /**

@@ -78,9 +78,17 @@ class User extends Authenticatable
 
     /**
      * Check if user has an active paid subscription
+     * Uses the package's subscribed() method with fallback to old subscription_status field
      */
     public function hasActiveSubscription(): bool
     {
+        // Try using the package's subscription relationship first
+        $subscription = $this->subscription();
+        if ($subscription) {
+            return $subscription->active() || $subscription->onGracePeriod();
+        }
+
+        // Fall back to the old subscription_status field for backward compatibility
         return $this->subscription_status === 'active';
     }
 
@@ -95,7 +103,10 @@ class User extends Authenticatable
         }
 
         // Free users can record only 1 video
-        return $this->getVideosCount() < 1;
+        // Check actual video count from database to ensure accuracy
+        $actualVideoCount = $this->videos()->count();
+
+        return $actualVideoCount < 1;
     }
 
     /**
@@ -109,16 +120,26 @@ class User extends Authenticatable
         }
 
         // Free tier: max 1 video
-        $remaining = 1 - $this->getVideosCount();
+        // Use actual count from database
+        $actualVideoCount = $this->videos()->count();
+        $remaining = 1 - $actualVideoCount;
 
         return max(0, $remaining);
     }
 
     /**
      * Check if subscription is in grace period (canceled but not expired)
+     * Uses the package's onGracePeriod() method with fallback
      */
     public function isSubscriptionInGracePeriod(): bool
     {
+        // Try using the package's subscription relationship first
+        $subscription = $this->subscription();
+        if ($subscription) {
+            return $subscription->onGracePeriod();
+        }
+
+        // Fall back to the old logic for backward compatibility
         if ($this->subscription_status !== 'canceled') {
             return false;
         }
@@ -131,11 +152,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Get video count (uses cached value)
+     * Get video count (returns actual count from database)
      */
     public function getVideosCount(): int
     {
-        return $this->videos_count ?? 0;
+        // Always return actual count from database for accuracy
+        return $this->videos()->count();
     }
 
     /**

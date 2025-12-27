@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\SubscriptionHistory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -159,25 +158,37 @@ class SubscriptionControllerTest extends TestCase
     public function test_it_returns_subscription_history_for_user_with_history()
     {
         // Create some history records
-        SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'created',
-            'status' => 'active',
-            'polar_subscription_id' => 'sub_test_123',
-            'polar_customer_id' => 'cust_test_123',
-            'period_start' => now(),
-            'period_end' => now()->addMonth(),
+        // Create 2 orders using the package's Order model
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_history_1',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
             'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
             'currency' => 'USD',
-            'plan_name' => 'Monthly',
-            'plan_interval' => 'month',
+            'billing_reason' => 'subscription_create',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now()->subHour(),
         ]);
 
-        SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'activated',
-            'status' => 'active',
-            'polar_subscription_id' => 'sub_test_123',
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_history_2',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
+            'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
+            'currency' => 'USD',
+            'billing_reason' => 'subscription_cycle',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -209,20 +220,38 @@ class SubscriptionControllerTest extends TestCase
 
     public function test_it_returns_history_in_descending_order()
     {
-        // Create older record first
-        $older = SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'created',
-            'status' => 'active',
-            'created_at' => now()->subDay(),
+        // Create older order first
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_older',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
+            'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
+            'currency' => 'USD',
+            'billing_reason' => 'subscription_create',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now()->subDay(),
         ]);
 
-        // Create newer record
-        $newer = SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'renewed',
-            'status' => 'active',
-            'created_at' => now(),
+        // Create newer order
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_newer',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
+            'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
+            'currency' => 'USD',
+            'billing_reason' => 'subscription_cycle',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -233,20 +262,27 @@ class SubscriptionControllerTest extends TestCase
         $history = $response->json('history');
         $this->assertCount(2, $history);
         // Newest should be first
-        $this->assertEquals('renewed', $history[0]['event_type']);
-        $this->assertEquals('created', $history[1]['event_type']);
+        $this->assertEquals('subscription_cycle', $history[0]['event_type']);
+        $this->assertEquals('subscription_create', $history[1]['event_type']);
     }
 
     public function test_it_does_not_expose_polar_ids_in_history()
     {
-        SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'created',
-            'status' => 'active',
-            'polar_subscription_id' => 'sub_secret_123',
-            'polar_customer_id' => 'cust_secret_456',
-            'polar_product_id' => 'prod_secret_789',
-            'polar_price_id' => 'price_secret_000',
+        // Create an order using the package's Order model
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_secret_123',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
+            'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
+            'currency' => 'USD',
+            'billing_reason' => 'subscription_create',
+            'customer_id' => 'cust_secret_456',
+            'product_id' => 'prod_secret_789',
+            'ordered_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -257,10 +293,11 @@ class SubscriptionControllerTest extends TestCase
         $history = $response->json('history.0');
 
         // These sensitive IDs should not be in the response
-        $this->assertArrayNotHasKey('polar_subscription_id', $history);
-        $this->assertArrayNotHasKey('polar_customer_id', $history);
-        $this->assertArrayNotHasKey('polar_product_id', $history);
-        $this->assertArrayNotHasKey('polar_price_id', $history);
+        $this->assertArrayNotHasKey('polar_id', $history);
+        $this->assertArrayNotHasKey('customer_id', $history);
+        $this->assertArrayNotHasKey('product_id', $history);
+        $this->assertArrayNotHasKey('billable_id', $history);
+        $this->assertArrayNotHasKey('billable_type', $history);
     }
 
     public function test_it_returns_401_for_history_without_auth()
@@ -272,10 +309,21 @@ class SubscriptionControllerTest extends TestCase
 
     public function test_history_includes_human_readable_event_labels()
     {
-        SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'created',
-            'status' => 'active',
+        // Create an order using the package's Order model
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_test_123',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
+            'amount' => 700,
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
+            'currency' => 'USD',
+            'billing_reason' => 'subscription_create',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -289,12 +337,21 @@ class SubscriptionControllerTest extends TestCase
 
     public function test_history_includes_formatted_amount()
     {
-        SubscriptionHistory::create([
-            'user_id' => $this->user->id,
-            'event_type' => 'created',
-            'status' => 'active',
+        // Create an order using the package's Order model
+        \Danestves\LaravelPolar\Order::create([
+            'billable_type' => 'App\Models\User',
+            'billable_id' => $this->user->id,
+            'polar_id' => 'order_test_456',
+            'status' => \Polar\Models\Components\OrderStatus::Paid,
             'amount' => 700, // $7.00 in cents
+            'tax_amount' => 0,
+            'refunded_amount' => 0,
+            'refunded_tax_amount' => 0,
             'currency' => 'USD',
+            'billing_reason' => 'subscription_create',
+            'customer_id' => 'customer_123',
+            'product_id' => 'product_123',
+            'ordered_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -308,12 +365,22 @@ class SubscriptionControllerTest extends TestCase
 
     public function test_history_limits_to_50_records()
     {
-        // Create 60 history records
+        // Create 60 order records using the package's Order model
         for ($i = 0; $i < 60; $i++) {
-            SubscriptionHistory::create([
-                'user_id' => $this->user->id,
-                'event_type' => 'updated',
-                'status' => 'active',
+            \Danestves\LaravelPolar\Order::create([
+                'billable_type' => 'App\Models\User',
+                'billable_id' => $this->user->id,
+                'polar_id' => 'order_test_'.$i,
+                'status' => \Polar\Models\Components\OrderStatus::Paid,
+                'amount' => 700,
+                'tax_amount' => 0,
+                'refunded_amount' => 0,
+                'refunded_tax_amount' => 0,
+                'currency' => 'USD',
+                'billing_reason' => 'subscription_cycle',
+                'customer_id' => 'customer_123',
+                'product_id' => 'product_123',
+                'ordered_at' => now()->subDays($i),
             ]);
         }
 
