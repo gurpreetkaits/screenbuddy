@@ -46,7 +46,7 @@ class Video extends Model implements HasMedia
         parent::boot();
 
         static::creating(function ($video) {
-            if (!$video->share_token) {
+            if (! $video->share_token) {
                 $video->share_token = Str::random(64);
             }
         });
@@ -82,6 +82,14 @@ class Video extends Model implements HasMedia
     public function views()
     {
         return $this->hasMany(VideoView::class);
+    }
+
+    /**
+     * Get the transcript for the video.
+     */
+    public function transcript()
+    {
+        return $this->hasOne(Transcript::class);
     }
 
     /**
@@ -135,7 +143,7 @@ class Video extends Model implements HasMedia
      * Register media conversions.
      * Generate video thumbnail using FFmpeg.
      */
-    public function registerMediaConversions(\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
     {
         // Thumbnails are generated manually in generateThumbnailFromMidpoint()
         // to have precise control over the timestamp
@@ -147,7 +155,7 @@ class Video extends Model implements HasMedia
     public function generateThumbnailFromMidpoint(): void
     {
         $videoMedia = $this->getFirstMedia('videos');
-        if (!$videoMedia) {
+        if (! $videoMedia) {
             return;
         }
 
@@ -159,20 +167,20 @@ class Video extends Model implements HasMedia
 
         // Generate thumbnail using FFmpeg
         try {
-            $thumbnailPath = storage_path('app/temp/thumbnail-' . $this->id . '-' . time() . '.jpg');
+            $thumbnailPath = storage_path('app/temp/thumbnail-'.$this->id.'-'.time().'.jpg');
 
             // Ensure temp directory exists
-            if (!file_exists(dirname($thumbnailPath))) {
+            if (! file_exists(dirname($thumbnailPath))) {
                 mkdir(dirname($thumbnailPath), 0755, true);
             }
 
             // Use FFmpeg to extract frame at midpoint
             // IMPORTANT: Use config() not env() - env() doesn't work when config is cached
             $ffmpeg = \FFMpeg\FFMpeg::create([
-                'ffmpeg.binaries'  => config('media-library.ffmpeg_path'),
+                'ffmpeg.binaries' => config('media-library.ffmpeg_path'),
                 'ffprobe.binaries' => config('media-library.ffprobe_path'),
-                'timeout'          => config('media-library.ffmpeg_timeout', 3600),
-                'ffmpeg.threads'   => config('media-library.ffmpeg_threads', 12),
+                'timeout' => config('media-library.ffmpeg_timeout', 3600),
+                'ffmpeg.threads' => config('media-library.ffmpeg_threads', 12),
             ]);
 
             $video = $ffmpeg->open($videoPath);
@@ -188,7 +196,7 @@ class Video extends Model implements HasMedia
                 unlink($thumbnailPath);
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to generate thumbnail for video ' . $this->id . ': ' . $e->getMessage());
+            \Log::error('Failed to generate thumbnail for video '.$this->id.': '.$e->getMessage());
         }
     }
 
@@ -214,6 +222,7 @@ class Video extends Model implements HasMedia
     public function getShareUrl(): string
     {
         $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
+
         return "{$frontendUrl}/share/video/{$this->share_token}";
     }
 
@@ -222,7 +231,7 @@ class Video extends Model implements HasMedia
      */
     public function isShareLinkValid(): bool
     {
-        if (!$this->is_public) {
+        if (! $this->is_public) {
             return false;
         }
 
@@ -275,7 +284,7 @@ class Video extends Model implements HasMedia
             'pending' => 'Waiting to process...',
             'processing' => "Converting... {$this->conversion_progress}%",
             'completed' => 'Ready for instant playback',
-            'failed' => 'Conversion failed: ' . ($this->conversion_error ?? 'Unknown error'),
+            'failed' => 'Conversion failed: '.($this->conversion_error ?? 'Unknown error'),
             default => 'Unknown status',
         };
     }

@@ -3,12 +3,13 @@
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\PolarWebhookController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\TranscriptController;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\VideoViewController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SubscriptionController;
-use App\Http\Controllers\PolarWebhookController;
 use App\Http\Middleware\CheckSubscriptionLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -126,6 +127,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Views tracking
         Route::post('/{id}/view', [VideoViewController::class, 'recordView']);
         Route::get('/{id}/stats', [VideoViewController::class, 'getStats']);
+
+        // Transcripts
+        Route::get('/{id}/transcript', [TranscriptController::class, 'show']);
+        Route::post('/{id}/transcript/retry', [TranscriptController::class, 'retry']);
     });
 });
 
@@ -134,14 +139,14 @@ Route::prefix('recordings')->group(function () {
     Route::get('/', function () {
         return response()->json([
             'recordings' => [],
-            'message' => 'Use /api/videos endpoint instead'
+            'message' => 'Use /api/videos endpoint instead',
         ]);
     });
 
     Route::post('/', function (Request $request) {
         return response()->json([
             'message' => 'Use /api/videos endpoint instead',
-            'id' => uniqid()
+            'id' => uniqid(),
         ]);
     });
 });

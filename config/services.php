@@ -38,7 +38,7 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL') . '/api/auth/google/callback'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/api/auth/google/callback'),
     ],
 
     'frontend' => [
@@ -55,6 +55,11 @@ return [
         'api_url' => env('POLAR_ENVIRONMENT', 'production') === 'production'
             ? 'https://api.polar.sh'
             : 'https://sandbox-api.polar.sh',
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'organization' => env('OPENAI_ORGANIZATION'),
     ],
 
 ];

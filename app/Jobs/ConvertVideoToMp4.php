@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Managers\TranscriptManager;
 use App\Models\Video;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -44,7 +45,7 @@ class ConvertVideoToMp4 implements ShouldQueue
     {
         $video = $this->video;
 
-        Log::info("Starting video conversion", [
+        Log::info('Starting video conversion', [
             'video_id' => $video->id,
             'title' => $video->title,
         ]);
@@ -52,9 +53,10 @@ class ConvertVideoToMp4 implements ShouldQueue
         // Get the current media
         $media = $video->getFirstMedia('videos');
 
-        if (!$media) {
-            Log::error("No media found for video", ['video_id' => $video->id]);
+        if (! $media) {
+            Log::error('No media found for video', ['video_id' => $video->id]);
             $this->markAsFailed($video, 'No media file found');
+
             return;
         }
 
@@ -67,7 +69,7 @@ class ConvertVideoToMp4 implements ShouldQueue
 
         // Skip if already MP4 with faststart (check file structure)
         if ($mimeType === 'video/mp4' && $this->hasFastStart($inputPath)) {
-            Log::info("Video already MP4 with faststart, skipping conversion", [
+            Log::info('Video already MP4 with faststart, skipping conversion', [
                 'video_id' => $video->id,
             ]);
             $video->update([
@@ -75,6 +77,7 @@ class ConvertVideoToMp4 implements ShouldQueue
                 'conversion_progress' => 100,
                 'converted_at' => now(),
             ]);
+
             return;
         }
 
@@ -86,11 +89,11 @@ class ConvertVideoToMp4 implements ShouldQueue
 
         // Prepare output path
         $tempDir = storage_path('app/temp');
-        if (!is_dir($tempDir)) {
+        if (! is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
-        $outputPath = $tempDir . '/converted_' . $video->id . '_' . time() . '.mp4';
+        $outputPath = $tempDir.'/converted_'.$video->id.'_'.time().'.mp4';
 
         try {
             // Build FFmpeg command with faststart for instant seeking
@@ -110,7 +113,7 @@ class ConvertVideoToMp4 implements ShouldQueue
                 escapeshellarg($outputPath)
             );
 
-            Log::info("Running FFmpeg conversion", [
+            Log::info('Running FFmpeg conversion', [
                 'video_id' => $video->id,
                 'command' => $command,
             ]);
@@ -124,18 +127,18 @@ class ConvertVideoToMp4 implements ShouldQueue
 
             $outputText = implode("\n", $output);
 
-            Log::info("FFmpeg output", [
+            Log::info('FFmpeg output', [
                 'video_id' => $video->id,
                 'return_code' => $returnCode,
                 'output_length' => strlen($outputText),
             ]);
 
             if ($returnCode !== 0) {
-                throw new \Exception("FFmpeg failed with code $returnCode: " . substr($outputText, -500));
+                throw new \Exception("FFmpeg failed with code $returnCode: ".substr($outputText, -500));
             }
 
-            if (!file_exists($outputPath)) {
-                throw new \Exception("Output file was not created");
+            if (! file_exists($outputPath)) {
+                throw new \Exception('Output file was not created');
             }
 
             $outputSize = filesize($outputPath);
@@ -149,7 +152,7 @@ class ConvertVideoToMp4 implements ShouldQueue
             $video->clearMediaCollection('videos');
 
             $video->addMedia($outputPath)
-                ->usingFileName('video_' . $video->id . '.mp4')
+                ->usingFileName('video_'.$video->id.'.mp4')
                 ->toMediaCollection('videos');
 
             $video->update(['conversion_progress' => 95]);
@@ -165,7 +168,7 @@ class ConvertVideoToMp4 implements ShouldQueue
                 'converted_at' => now(),
             ]);
 
-            Log::info("Video conversion completed successfully", [
+            Log::info('Video conversion completed successfully', [
                 'video_id' => $video->id,
                 'original_extension' => $originalExtension,
                 'output_size' => $outputSize,
@@ -176,8 +179,14 @@ class ConvertVideoToMp4 implements ShouldQueue
                 @unlink($outputPath);
             }
 
+            // Automatically start transcription after successful conversion
+            $transcriptManager = app(TranscriptManager::class);
+            $transcriptManager->createTranscript($video);
+
+            Log::info('Transcription job dispatched', ['video_id' => $video->id]);
+
         } catch (\Exception $e) {
-            Log::error("Video conversion failed", [
+            Log::error('Video conversion failed', [
                 'video_id' => $video->id,
                 'error' => $e->getMessage(),
             ]);
@@ -201,7 +210,7 @@ class ConvertVideoToMp4 implements ShouldQueue
     {
         // Read first 32 bytes to check for ftyp and moov atoms
         $handle = fopen($filePath, 'rb');
-        if (!$handle) {
+        if (! $handle) {
             return false;
         }
 
@@ -229,7 +238,7 @@ class ConvertVideoToMp4 implements ShouldQueue
      */
     public function failed(?\Throwable $exception): void
     {
-        Log::error("Video conversion job failed permanently", [
+        Log::error('Video conversion job failed permanently', [
             'video_id' => $this->video->id,
             'error' => $exception?->getMessage(),
         ]);
