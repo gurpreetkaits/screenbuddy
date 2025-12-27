@@ -31,12 +31,13 @@ jobs:
           coverage: none
 
       - name: Copy .env
-        run: |
-          cp .env.example .env
-          php artisan key:generate
+        run: cp .env.example .env
 
       - name: Install Composer Dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Generate App Key
+        run: php artisan key:generate
 
       - name: Run Tests
         env:
