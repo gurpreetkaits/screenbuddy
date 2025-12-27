@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Danestves\LaravelPolar\Billable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use Billable, HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -109,6 +110,7 @@ class User extends Authenticatable
 
         // Free tier: max 1 video
         $remaining = 1 - $this->getVideosCount();
+
         return max(0, $remaining);
     }
 
@@ -121,7 +123,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if (!$this->subscription_expires_at) {
+        if (! $this->subscription_expires_at) {
             return false;
         }
 
@@ -143,6 +145,7 @@ class User extends Authenticatable
     {
         $count = $this->videos()->count();
         $this->update(['videos_count' => $count]);
+
         return $count;
     }
 

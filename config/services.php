@@ -38,7 +38,7 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL') . '/api/auth/google/callback'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/api/auth/google/callback'),
     ],
 
     'frontend' => [
@@ -46,13 +46,13 @@ return [
     ],
 
     'polar' => [
-        'api_key' => env('POLAR_API_KEY'),
+        'api_key' => env('POLAR_ACCESS_TOKEN', env('POLAR_API_KEY')), // For backward compatibility
         'organization_id' => env('POLAR_ORGANIZATION_ID'),
         'product_id_monthly' => env('POLAR_PRODUCT_ID_MONTHLY'),
         'product_id_yearly' => env('POLAR_PRODUCT_ID_YEARLY'),
         'webhook_secret' => env('POLAR_WEBHOOK_SECRET'),
-        'environment' => env('POLAR_ENVIRONMENT', 'production'),
-        'api_url' => env('POLAR_ENVIRONMENT', 'production') === 'production'
+        'environment' => env('POLAR_SERVER', env('POLAR_ENVIRONMENT', 'sandbox')),
+        'api_url' => env('POLAR_SERVER', env('POLAR_ENVIRONMENT', 'sandbox')) === 'production'
             ? 'https://api.polar.sh'
             : 'https://sandbox-api.polar.sh',
     ],

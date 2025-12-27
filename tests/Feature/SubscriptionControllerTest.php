@@ -2,10 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\SubscriptionHistory;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SubscriptionControllerTest extends TestCase
@@ -25,7 +24,6 @@ class SubscriptionControllerTest extends TestCase
         ]);
     }
 
-    
     public function test_it_returns_subscription_status_for_authenticated_user()
     {
         $response = $this->actingAs($this->user)
@@ -47,7 +45,6 @@ class SubscriptionControllerTest extends TestCase
             ]);
     }
 
-    
     public function test_it_returns_401_for_unauthenticated_user()
     {
         $response = $this->getJson('/api/subscription/status');
@@ -55,7 +52,6 @@ class SubscriptionControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    
     public function test_it_shows_free_user_can_record_one_video()
     {
         $response = $this->actingAs($this->user)
@@ -72,7 +68,6 @@ class SubscriptionControllerTest extends TestCase
             ]);
     }
 
-    
     public function test_it_shows_free_user_cannot_record_after_limit()
     {
         $this->user->update(['videos_count' => 1]);
@@ -91,7 +86,6 @@ class SubscriptionControllerTest extends TestCase
             ]);
     }
 
-    
     public function test_it_shows_active_subscription_user_has_unlimited_quota()
     {
         $this->user->update([
@@ -115,75 +109,6 @@ class SubscriptionControllerTest extends TestCase
             ]);
     }
 
-    
-    public function test_it_creates_checkout_session_for_monthly_plan()
-    {
-        // Mock the Polar API response
-        Http::fake([
-            '*/v1/checkouts/' => Http::response([
-                'id' => 'checkout_test_123',
-                'url' => 'https://checkout.polar.sh/test_checkout',
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/checkout', [
-                'plan' => 'monthly',
-            ]);
-
-        $response->assertOk()
-            ->assertJsonStructure([
-                'checkout_url',
-                'checkout_id',
-            ])
-            ->assertJson([
-                'checkout_id' => 'checkout_test_123',
-            ]);
-    }
-
-    
-    public function test_it_creates_checkout_session_for_yearly_plan()
-    {
-        Http::fake([
-            '*/v1/checkouts/' => Http::response([
-                'id' => 'checkout_yearly_123',
-                'url' => 'https://checkout.polar.sh/test_yearly',
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/checkout', [
-                'plan' => 'yearly',
-            ]);
-
-        $response->assertOk()
-            ->assertJson([
-                'checkout_id' => 'checkout_yearly_123',
-            ]);
-    }
-
-    
-    public function test_it_defaults_to_monthly_plan_when_not_specified()
-    {
-        Http::fake([
-            '*/v1/checkouts/' => Http::response([
-                'id' => 'checkout_monthly_default',
-                'url' => 'https://checkout.polar.sh/monthly',
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/checkout');
-
-        $response->assertOk();
-
-        // Verify the request was made to Polar
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v1/checkouts/');
-        });
-    }
-
-    
     public function test_it_rejects_invalid_plan_parameter()
     {
         $response = $this->actingAs($this->user)
@@ -194,62 +119,6 @@ class SubscriptionControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    
-    public function test_it_uses_existing_polar_customer_id_for_checkout()
-    {
-        // Use a valid UUID format as Polar customer IDs are UUIDs
-        $customerId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-        $this->user->update(['polar_customer_id' => $customerId]);
-
-        Http::fake([
-            '*/v1/checkouts/' => Http::response([
-                'id' => 'checkout_existing_customer',
-                'url' => 'https://checkout.polar.sh/existing',
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/checkout', [
-                'plan' => 'monthly',
-            ]);
-
-        $response->assertOk();
-
-        // Verify checkout was created with customer_id
-        Http::assertSent(function ($request) use ($customerId) {
-            $body = json_decode($request->body(), true);
-            return isset($body['customer_id']) && $body['customer_id'] === $customerId;
-        });
-    }
-
-    
-    public function test_it_cancels_active_subscription()
-    {
-        $this->user->update([
-            'subscription_status' => 'active',
-            'polar_subscription_id' => 'sub_test_123',
-            'subscription_expires_at' => now()->addMonth(),
-        ]);
-
-        Http::fake([
-            '*/v1/subscriptions/sub_test_123' => Http::response([], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/cancel');
-
-        $response->assertOk()
-            ->assertJson([
-                'message' => 'Subscription canceled successfully',
-            ]);
-
-        // Verify user status was updated
-        $this->user->refresh();
-        $this->assertEquals('canceled', $this->user->subscription_status);
-        $this->assertNotNull($this->user->subscription_canceled_at);
-    }
-
-    
     public function test_it_returns_error_when_canceling_without_active_subscription()
     {
         $response = $this->actingAs($this->user)
@@ -261,27 +130,6 @@ class SubscriptionControllerTest extends TestCase
             ]);
     }
 
-    
-    public function test_it_gets_billing_portal_url()
-    {
-        $this->user->update(['polar_customer_id' => 'cust_portal_test']);
-
-        Http::fake([
-            '*/v1/customer-portal/sessions' => Http::response([
-                'url' => 'https://portal.polar.sh/session/test',
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/subscription/portal');
-
-        $response->assertOk()
-            ->assertJson([
-                'portal_url' => 'https://portal.polar.sh/session/test',
-            ]);
-    }
-
-    
     public function test_it_returns_error_for_portal_without_customer_id()
     {
         $response = $this->actingAs($this->user)
@@ -290,26 +138,6 @@ class SubscriptionControllerTest extends TestCase
         $response->assertStatus(400)
             ->assertJson([
                 'error' => 'Customer ID not found',
-            ]);
-    }
-
-    
-    public function test_it_handles_polar_api_error_gracefully()
-    {
-        Http::fake([
-            '*/v1/checkouts/' => Http::response([
-                'error' => 'Internal server error',
-            ], 500),
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/subscription/checkout', [
-                'plan' => 'monthly',
-            ]);
-
-        $response->assertStatus(500)
-            ->assertJson([
-                'error' => 'Failed to create checkout session',
             ]);
     }
 

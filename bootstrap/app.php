@@ -1,9 +1,9 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -18,13 +18,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: [
             'api/*',
+            'polar/*',
         ]);
+
+        // Log all polar webhook requests
+        $middleware->prepend(\App\Http\Middleware\LogPolarWebhook::class);
 
         // Configure auth middleware to return JSON 401 for API routes instead of redirecting
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 abort(response()->json(['message' => 'Unauthenticated.'], 401));
             }
+
             return null; // Let it throw for web routes
         });
     })
