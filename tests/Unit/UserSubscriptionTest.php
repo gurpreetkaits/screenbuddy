@@ -10,7 +10,6 @@ class UserSubscriptionTest extends TestCase
 {
     use RefreshDatabase;
 
-    
     public function test_free_user_does_not_have_active_subscription()
     {
         $user = User::factory()->create([
@@ -20,7 +19,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertFalse($user->hasActiveSubscription());
     }
 
-    
     public function test_active_user_has_active_subscription()
     {
         $user = User::factory()->create([
@@ -30,7 +28,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertTrue($user->hasActiveSubscription());
     }
 
-    
     public function test_canceled_user_does_not_have_active_subscription()
     {
         $user = User::factory()->create([
@@ -40,7 +37,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertFalse($user->hasActiveSubscription());
     }
 
-    
     public function test_free_user_can_record_first_video()
     {
         $user = User::factory()->create([
@@ -51,18 +47,18 @@ class UserSubscriptionTest extends TestCase
         $this->assertTrue($user->canRecordVideo());
     }
 
-    
     public function test_free_user_cannot_record_after_limit()
     {
         $user = User::factory()->create([
             'subscription_status' => 'free',
-            'videos_count' => 1,
         ]);
+
+        // Create 1 video to reach the free tier limit
+        \App\Models\Video::factory()->create(['user_id' => $user->id]);
 
         $this->assertFalse($user->canRecordVideo());
     }
 
-    
     public function test_active_user_can_always_record()
     {
         $user = User::factory()->create([
@@ -73,7 +69,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertTrue($user->canRecordVideo());
     }
 
-    
     public function test_free_user_has_remaining_quota_of_one()
     {
         $user = User::factory()->create([
@@ -84,18 +79,18 @@ class UserSubscriptionTest extends TestCase
         $this->assertEquals(1, $user->getRemainingVideoQuota());
     }
 
-    
     public function test_free_user_has_zero_quota_after_one_video()
     {
         $user = User::factory()->create([
             'subscription_status' => 'free',
-            'videos_count' => 1,
         ]);
+
+        // Create 1 video to reach the free tier limit
+        \App\Models\Video::factory()->create(['user_id' => $user->id]);
 
         $this->assertEquals(0, $user->getRemainingVideoQuota());
     }
 
-    
     public function test_active_user_has_unlimited_quota()
     {
         $user = User::factory()->create([
@@ -105,7 +100,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertNull($user->getRemainingVideoQuota());
     }
 
-    
     public function test_canceled_user_in_grace_period()
     {
         $user = User::factory()->create([
@@ -116,7 +110,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertTrue($user->isSubscriptionInGracePeriod());
     }
 
-    
     public function test_canceled_user_not_in_grace_period_after_expiry()
     {
         $user = User::factory()->create([
@@ -127,7 +120,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertFalse($user->isSubscriptionInGracePeriod());
     }
 
-    
     public function test_active_user_not_in_grace_period()
     {
         $user = User::factory()->create([
@@ -138,7 +130,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertFalse($user->isSubscriptionInGracePeriod());
     }
 
-    
     public function test_user_sensitive_fields_are_hidden()
     {
         $user = User::factory()->create([
@@ -157,7 +148,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertArrayNotHasKey('password', $array);
     }
 
-    
     public function test_user_subscription_dates_are_cast_to_datetime()
     {
         $user = User::factory()->create([
@@ -171,7 +161,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertInstanceOf(\Carbon\Carbon::class, $user->subscription_canceled_at);
     }
 
-    
     public function test_videos_count_is_cast_to_integer()
     {
         $user = User::factory()->create([
@@ -181,7 +170,6 @@ class UserSubscriptionTest extends TestCase
         $this->assertIsInt($user->videos_count);
         $this->assertEquals(5, $user->videos_count);
     }
-
 
     public function test_get_videos_count_returns_zero_when_not_set()
     {
