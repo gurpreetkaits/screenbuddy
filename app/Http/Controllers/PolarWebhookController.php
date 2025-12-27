@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\SubscriptionHistory;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
 
 class PolarWebhookController extends Controller
 {
@@ -40,11 +40,12 @@ class PolarWebhookController extends Controller
         ]);
 
         // Verify webhook signature
-        if (!$this->verifyWebhookSignature($request)) {
+        if (! $this->verifyWebhookSignature($request)) {
             Log::warning('Polar webhook signature verification failed', [
                 'headers' => $request->headers->all(),
                 'ip' => $request->ip(),
             ]);
+
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
@@ -52,8 +53,9 @@ class PolarWebhookController extends Controller
         $payload = $request->all();
         $eventType = $payload['type'] ?? null;
 
-        if (!$eventType) {
+        if (! $eventType) {
             Log::error('Polar webhook missing event type', ['payload' => $payload]);
+
             return response()->json(['error' => 'Missing event type'], 400);
         }
 
@@ -114,100 +116,167 @@ class PolarWebhookController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json(['error' => 'Processing failed'], 500);
         }
     }
 
     /**
-     * Verify webhook signature using Standard Webhooks specification
+     * Verify webhook signature using Standard Webhooks library
      */
     protected function verifyWebhookSignature(Request $request): bool
     {
         $secret = config('services.polar.webhook_secret');
 
-        if (!$secret) {
+        if (! $secret) {
             Log::error('Polar webhook secret not configured');
+
             return false;
         }
 
-        // Get Standard Webhooks headers
+        $rawBody = $request->getContent();
+        $headers = [
+            'webhook-id' => $request->header('webhook-id'),
+            'webhook-timestamp' => $request->header('webhook-timestamp'),
+            'webhook-signature' => $request->header('webhook-signature'),
+        ];
+
+        Log::debug('Webhook verification attempt', [
+            'webhook_id' => $headers['webhook-id'],
+            'timestamp' => $headers['webhook-timestamp'],
+            'body_length' => strlen($rawBody),
+        ]);
+
+        // Convert Polar's polar_whs_ prefix to Standard Webhooks' whsec_ prefix
+        $standardSecret = $secret;
+        if (str_starts_with($secret, 'polar_whs_')) {
+            $standardSecret = 'whsec_'.substr($secret, 10);
+        }
+
+        // Try with the official Standard Webhooks library first
+        try {
+            $webhook = new \StandardWebhooks\Webhook($standardSecret);
+            $result = $webhook->verify($rawBody, $headers);
+            Log::info('Webhook signature verified via Standard Webhooks library');
+
+            return true;
+        } catch (\StandardWebhooks\Exception\WebhookVerificationException $e) {
+            Log::debug('Standard Webhooks verification failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback: Try with raw secret (no base64 decoding)
+        try {
+            $secretWithoutPrefix = $secret;
+            if (str_starts_with($secret, 'polar_whs_')) {
+                $secretWithoutPrefix = substr($secret, 10);
+            }
+            $webhook = \StandardWebhooks\Webhook::fromRaw($secretWithoutPrefix);
+            $result = $webhook->verify($rawBody, $headers);
+            Log::info('Webhook signature verified via fromRaw');
+
+            return true;
+        } catch (\StandardWebhooks\Exception\WebhookVerificationException $e) {
+            Log::debug('Raw secret verification failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Last fallback: Manual verification with multiple approaches
+        return $this->verifyManually($request, $secret);
+    }
+
+    /**
+     * Manual signature verification as fallback
+     */
+    protected function verifyManually(Request $request, string $secret): bool
+    {
         $webhookId = $request->header('webhook-id');
         $webhookTimestamp = $request->header('webhook-timestamp');
         $webhookSignature = $request->header('webhook-signature');
 
-        if (!$webhookId || !$webhookTimestamp || !$webhookSignature) {
-            Log::warning('Missing Standard Webhooks headers');
+        if (! $webhookId || ! $webhookTimestamp || ! $webhookSignature) {
             return false;
         }
 
-        // Check timestamp to prevent replay attacks (allow 5 minute window)
-        $timestamp = intval($webhookTimestamp);
-        $now = time();
-        if (abs($now - $timestamp) > 300) {
-            Log::warning('Webhook timestamp too old', [
-                'webhook_timestamp' => $timestamp,
-                'current_time' => $now,
-                'difference' => abs($now - $timestamp),
-            ]);
-            return false;
-        }
-
-        // Construct signed content
         $rawBody = $request->getContent();
-        $signedContent = $webhookId . '.' . $webhookTimestamp . '.' . $rawBody;
+        $signedContent = $webhookId.'.'.$webhookTimestamp.'.'.$rawBody;
 
-        // DEBUG: Log content details for signature debugging
-        Log::debug('Webhook signature debugging', [
-            'webhook_id' => $webhookId,
-            'timestamp' => $webhookTimestamp,
-            'body_length' => strlen($rawBody),
-            'body_hash' => hash('sha256', $rawBody),
-            'signed_content_hash' => hash('sha256', $signedContent),
-        ]);
-
-        // Parse signatures from header (format: "v1,signature1 v1,signature2")
+        // Parse received signatures
         $signatures = explode(' ', $webhookSignature);
 
-        // Extract the actual secret key from Polar's format
-        // Polar uses format: polar_whs_<base64_encoded_key>
-        $secretKey = $secret;
-        if (str_starts_with($secret, 'polar_whs_')) {
-            $secretKey = substr($secret, 10); // Remove 'polar_whs_' prefix
-        }
-
-        // Decode the base64 secret
-        $decodedSecret = base64_decode($secretKey);
+        // Try multiple secret interpretations
+        $secretVariants = $this->getSecretVariants($secret);
 
         foreach ($signatures as $versionedSig) {
             $parts = explode(',', $versionedSig, 2);
-            if (count($parts) !== 2) {
+            if (count($parts) !== 2 || $parts[0] !== 'v1') {
                 continue;
             }
 
-            [$version, $signature] = $parts;
+            $receivedSignature = $parts[1];
 
-            if ($version !== 'v1') {
-                continue;
-            }
+            foreach ($secretVariants as $variantName => $secretBytes) {
+                // Method 1: Standard Webhooks format (hex then pack then base64)
+                $hexHash = hash_hmac('sha256', $signedContent, $secretBytes);
+                $expectedSig1 = base64_encode(pack('H*', $hexHash));
 
-            // Compute expected signature
-            $expectedSignature = base64_encode(hash_hmac('sha256', $signedContent, $decodedSecret, true));
+                // Method 2: Direct binary to base64
+                $expectedSig2 = base64_encode(hash_hmac('sha256', $signedContent, $secretBytes, true));
 
-            // Debug logging
-            Log::debug('Webhook signature verification', [
-                'webhook_id' => $webhookId,
-                'expected' => $expectedSignature,
-                'received' => $signature,
-                'match' => hash_equals($expectedSignature, $signature),
-            ]);
+                Log::debug('Manual verification attempt', [
+                    'variant' => $variantName,
+                    'expected_hex_pack' => $expectedSig1,
+                    'expected_binary' => $expectedSig2,
+                    'received' => $receivedSignature,
+                ]);
 
-            // Compare signatures (timing-safe)
-            if (hash_equals($expectedSignature, $signature)) {
-                return true;
+                if (hash_equals($expectedSig1, $receivedSignature)) {
+                    Log::info('Webhook verified via manual hex-pack method', ['variant' => $variantName]);
+
+                    return true;
+                }
+
+                if (hash_equals($expectedSig2, $receivedSignature)) {
+                    Log::info('Webhook verified via manual binary method', ['variant' => $variantName]);
+
+                    return true;
+                }
             }
         }
 
+        Log::warning('All signature verification methods failed');
+
         return false;
+    }
+
+    /**
+     * Get different interpretations of the webhook secret
+     */
+    protected function getSecretVariants(string $secret): array
+    {
+        $variants = [];
+
+        // Remove polar_whs_ prefix if present
+        $withoutPrefix = $secret;
+        if (str_starts_with($secret, 'polar_whs_')) {
+            $withoutPrefix = substr($secret, 10);
+        }
+
+        // Variant 1: Secret without prefix, base64 decoded (Standard Webhooks format)
+        $decoded = base64_decode($withoutPrefix, true);
+        if ($decoded !== false && strlen($decoded) > 0) {
+            $variants['base64_decoded'] = $decoded;
+        }
+
+        // Variant 2: Secret without prefix used directly as raw bytes
+        $variants['raw_without_prefix'] = $withoutPrefix;
+
+        // Variant 3: Full secret used as raw bytes
+        $variants['raw_full'] = $secret;
+
+        return $variants;
     }
 
     /**
@@ -240,13 +309,14 @@ class PolarWebhookController extends Controller
             'metadata' => $data['metadata'] ?? null,
         ]);
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::error('Missing subscription ID in subscription.created', ['data' => $data]);
+
             return;
         }
 
         // If external_id is missing, try to fetch customer data from Polar API
-        if (!$externalId && $customerId) {
+        if (! $externalId && $customerId) {
             Log::info('External ID not in webhook payload, fetching customer from Polar API', [
                 'customer_id' => $customerId,
             ]);
@@ -256,7 +326,7 @@ class PolarWebhookController extends Controller
         // Find user - try multiple methods
         $user = $this->findUserForSubscription($customerId, $externalId);
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for subscription.created', [
                 'customer_id' => $customerId,
                 'external_id' => $externalId,
@@ -265,6 +335,7 @@ class PolarWebhookController extends Controller
                     'external_id' => $externalId,
                 ],
             ]);
+
             return;
         }
 
@@ -275,7 +346,7 @@ class PolarWebhookController extends Controller
         ]);
 
         // Update user with customer ID if not set
-        if ($customerId && !$user->polar_customer_id) {
+        if ($customerId && ! $user->polar_customer_id) {
             $user->polar_customer_id = $customerId;
         }
 
@@ -298,7 +369,7 @@ class PolarWebhookController extends Controller
         ]);
 
         // Only record history if this is a new subscription (not already created by checkout handler)
-        if (!$subscriptionAlreadyExists) {
+        if (! $subscriptionAlreadyExists) {
             SubscriptionHistory::recordEvent($user, 'created', $this->mapPolarStatus($status), [
                 'subscription_id' => $subscriptionId,
                 'customer_id' => $customerId,
@@ -332,23 +403,25 @@ class PolarWebhookController extends Controller
         $customer = $data['customer'] ?? null;
         $externalId = $customer['external_id'] ?? ($data['metadata']['user_id'] ?? null);
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::error('Missing subscription ID in subscription.active');
+
             return;
         }
 
         // Try to find user by subscription ID first, then by customer
         $user = User::where('polar_subscription_id', $subscriptionId)->first();
 
-        if (!$user) {
+        if (! $user) {
             $user = $this->findUserForSubscription($customerId, $externalId);
         }
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for subscription.active', [
                 'subscription_id' => $subscriptionId,
                 'customer_id' => $customerId,
             ]);
+
             return;
         }
 
@@ -388,8 +461,9 @@ class PolarWebhookController extends Controller
         $externalId = $data['external_id'] ?? null;
         $email = $data['email'] ?? null;
 
-        if (!$customerId) {
+        if (! $customerId) {
             Log::error('Missing customer ID in customer.created');
+
             return;
         }
 
@@ -400,16 +474,17 @@ class PolarWebhookController extends Controller
             $user = User::find($externalId);
         }
 
-        if (!$user && $email) {
+        if (! $user && $email) {
             $user = User::where('email', $email)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for customer.created', [
                 'customer_id' => $customerId,
                 'external_id' => $externalId,
                 'email' => $email,
             ]);
+
             return;
         }
 
@@ -427,7 +502,7 @@ class PolarWebhookController extends Controller
      */
     protected function fetchCustomerExternalId(?string $customerId): ?string
     {
-        if (!$customerId) {
+        if (! $customerId) {
             return null;
         }
 
@@ -435,13 +510,14 @@ class PolarWebhookController extends Controller
             $apiKey = config('services.polar.api_key');
             $apiUrl = config('services.polar.api_url', 'https://api.polar.sh');
 
-            if (!$apiKey) {
+            if (! $apiKey) {
                 Log::error('Polar API key not configured, cannot fetch customer data');
+
                 return null;
             }
 
             $response = \Illuminate\Support\Facades\Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Accept' => 'application/json',
             ])->get("{$apiUrl}/v1/customers/{$customerId}");
 
@@ -452,6 +528,7 @@ class PolarWebhookController extends Controller
                     'external_id' => $customerData['external_id'] ?? null,
                     'email' => $customerData['email'] ?? null,
                 ]);
+
                 return $customerData['external_id'] ?? null;
             }
 
@@ -460,12 +537,14 @@ class PolarWebhookController extends Controller
                 'status' => $response->status(),
                 'error' => $response->body(),
             ]);
+
             return null;
         } catch (\Exception $e) {
             Log::error('Error fetching customer from Polar API', [
                 'customer_id' => $customerId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -483,6 +562,7 @@ class PolarWebhookController extends Controller
                     'user_id' => $user->id,
                     'polar_customer_id' => $customerId,
                 ]);
+
                 return $user;
             }
         }
@@ -495,6 +575,7 @@ class PolarWebhookController extends Controller
                     'user_id' => $user->id,
                     'external_id' => $externalId,
                 ]);
+
                 return $user;
             }
         }
@@ -511,15 +592,17 @@ class PolarWebhookController extends Controller
         $subscriptionId = $data['id'] ?? null;
         $status = $data['status'] ?? null;
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::error('Missing subscription ID in subscription.updated');
+
             return;
         }
 
         $user = User::where('polar_subscription_id', $subscriptionId)->first();
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for subscription ID', ['subscription_id' => $subscriptionId]);
+
             return;
         }
 
@@ -576,15 +659,17 @@ class PolarWebhookController extends Controller
         $data = $payload['data'];
         $subscriptionId = $data['id'] ?? null;
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::error('Missing subscription ID in subscription.canceled');
+
             return;
         }
 
         $user = User::where('polar_subscription_id', $subscriptionId)->first();
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for subscription ID', ['subscription_id' => $subscriptionId]);
+
             return;
         }
 
@@ -617,15 +702,17 @@ class PolarWebhookController extends Controller
         $data = $payload['data'];
         $subscriptionId = $data['id'] ?? null;
 
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::error('Missing subscription ID in subscription.revoked');
+
             return;
         }
 
         $user = User::where('polar_subscription_id', $subscriptionId)->first();
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for subscription ID', ['subscription_id' => $subscriptionId]);
+
             return;
         }
 
@@ -673,15 +760,17 @@ class PolarWebhookController extends Controller
         $data = $payload['data'];
         $customerId = $data['id'] ?? null;
 
-        if (!$customerId) {
+        if (! $customerId) {
             Log::error('Missing customer ID in customer.updated');
+
             return;
         }
 
         $user = User::where('polar_customer_id', $customerId)->first();
 
-        if (!$user) {
+        if (! $user) {
             Log::warning('User not found for customer ID', ['customer_id' => $customerId]);
+
             return;
         }
 
@@ -712,7 +801,7 @@ class PolarWebhookController extends Controller
      */
     protected function getPlanName(?string $productId): ?string
     {
-        if (!$productId) {
+        if (! $productId) {
             return null;
         }
 

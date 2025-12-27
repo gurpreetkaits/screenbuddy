@@ -4,8 +4,8 @@ namespace App\Managers;
 
 use App\Models\User;
 use App\Repositories\SubscriptionRepository;
+use App\Services\ApiLogger;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionManager
@@ -59,13 +59,13 @@ class SubscriptionManager
 
         $frontendUrl = config('services.frontend.url');
 
-        if (!$productId) {
+        if (! $productId) {
             throw new \Exception("Polar product ID not configured for {$plan} plan");
         }
 
         $checkoutPayload = [
             'products' => [$productId],
-            'success_url' => $frontendUrl . '/subscription/success?checkout_id={CHECKOUT_ID}',
+            'success_url' => $frontendUrl.'/subscription/success?checkout_id={CHECKOUT_ID}',
             'customer_email' => $user->email,
             'customer_name' => $user->name,
             'customer_external_id' => (string) $user->id,
@@ -100,12 +100,18 @@ class SubscriptionManager
             $this->subscriptions->clearCustomerId($user);
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->post(config('services.polar.api_url') . '/v1/checkouts/', $checkoutPayload);
+        $response = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'create_checkout', 'plan' => $plan])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->post(config('services.polar.api_url').'/v1/checkouts/', $checkoutPayload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to create Polar checkout', [
                 'status' => $response->status(),
                 'body' => $response->body(),
@@ -130,12 +136,18 @@ class SubscriptionManager
 
     public function handleCheckoutSuccess(User $user, string $checkoutId): array
     {
-        $checkoutResponse = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->get(config('services.polar.api_url') . '/v1/checkouts/' . $checkoutId);
+        $checkoutResponse = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'get_checkout', 'checkout_id' => $checkoutId])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->get(config('services.polar.api_url').'/v1/checkouts/'.$checkoutId);
 
-        if (!$checkoutResponse->successful()) {
+        if (! $checkoutResponse->successful()) {
             Log::error('Failed to fetch checkout from Polar', [
                 'checkout_id' => $checkoutId,
                 'status' => $checkoutResponse->status(),
@@ -156,7 +168,7 @@ class SubscriptionManager
             'status' => $checkout['status'] ?? null,
         ]);
 
-        if ($customerId && !$user->polar_customer_id) {
+        if ($customerId && ! $user->polar_customer_id) {
             $this->subscriptions->updateUserSubscription($user, ['polar_customer_id' => $customerId]);
         }
 
@@ -176,17 +188,24 @@ class SubscriptionManager
 
     public function fetchAndCreateSubscription(User $user, string $subscriptionId): void
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->get(config('services.polar.api_url') . '/v1/subscriptions/' . $subscriptionId);
+        $response = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'get_subscription', 'subscription_id' => $subscriptionId])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->get(config('services.polar.api_url').'/v1/subscriptions/'.$subscriptionId);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to fetch subscription from Polar', [
                 'subscription_id' => $subscriptionId,
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return;
         }
 
@@ -239,20 +258,26 @@ class SubscriptionManager
 
     public function cancelSubscription(User $user): array
     {
-        if (!$user->hasActiveSubscription()) {
+        if (! $user->hasActiveSubscription()) {
             throw new \InvalidArgumentException('No active subscription to cancel');
         }
 
-        if (!$user->polar_subscription_id) {
+        if (! $user->polar_subscription_id) {
             throw new \InvalidArgumentException('Subscription ID not found');
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->delete(config('services.polar.api_url') . '/v1/subscriptions/' . $user->polar_subscription_id);
+        $response = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'cancel_subscription', 'subscription_id' => $user->polar_subscription_id])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->delete(config('services.polar.api_url').'/v1/subscriptions/'.$user->polar_subscription_id);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to cancel Polar subscription', [
                 'subscription_id' => $user->polar_subscription_id,
                 'status' => $response->status(),
@@ -274,18 +299,24 @@ class SubscriptionManager
 
     public function getPortalUrl(User $user): string
     {
-        if (!$user->polar_customer_id) {
+        if (! $user->polar_customer_id) {
             throw new \InvalidArgumentException('Customer ID not found');
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->post(config('services.polar.api_url') . '/v1/customer-portal/sessions', [
-            'customer_id' => $user->polar_customer_id,
-        ]);
+        $response = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'create_portal_session', 'customer_id' => $user->polar_customer_id])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->post(config('services.polar.api_url').'/v1/customer-portal/sessions', [
+                'customer_id' => $user->polar_customer_id,
+            ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::error('Failed to create customer portal session', [
                 'customer_id' => $user->polar_customer_id,
                 'status' => $response->status(),
@@ -301,19 +332,26 @@ class SubscriptionManager
 
     public function createPolarCustomer(User $user): ?string
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.polar.api_key'),
-            'Content-Type' => 'application/json',
-        ])->post(config('services.polar.api_url') . '/v1/customers', [
-            'email' => $user->email,
-            'name' => $user->name,
-            'metadata' => [
-                'user_id' => $user->id,
-            ],
-        ]);
+        $response = ApiLogger::make()
+            ->forService('polar')
+            ->forUser($user)
+            ->withContext(['action' => 'create_customer'])
+            ->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer '.config('services.polar.api_key'),
+                'Content-Type' => 'application/json',
+            ])
+            ->post(config('services.polar.api_url').'/v1/customers', [
+                'email' => $user->email,
+                'name' => $user->name,
+                'metadata' => [
+                    'user_id' => $user->id,
+                ],
+            ]);
 
         if ($response->successful()) {
             $data = $response->json();
+
             return $data['id'] ?? null;
         }
 
@@ -328,6 +366,7 @@ class SubscriptionManager
     protected function isValidUuid(string $uuid): bool
     {
         $pattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+
         return (bool) preg_match($pattern, $uuid);
     }
 }
