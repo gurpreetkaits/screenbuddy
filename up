@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Start the ScreenBuddy development environment
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "🚀 Starting ScreenBuddy development environment..."
+
+# Stop and remove any existing containers to avoid conflicts
+docker compose down 2>/dev/null
+
+# Force remove any lingering screensense containers
+docker ps -aq --filter "name=screensense" | xargs -r docker rm -f 2>/dev/null
+
+# Start all services
+docker compose up -d
+
+# Wait for services to be ready
+echo "⏳ Waiting for services to start..."
+sleep 3
+
+# Check if database is ready
+echo "🗄️  Waiting for database to be ready..."
+until docker exec screensense-db mysqladmin ping -h localhost --silent 2>/dev/null; do
+    echo "   Database not ready, retrying in 2 seconds..."
+    sleep 2
+done
+
+echo ""
+echo "✅ ScreenBuddy is ready!"
+echo ""
+echo "📍 Services:"
+echo "   🌐 Frontend: http://localhost:${FRONTEND_PORT:-3333}"
+echo "   🔧 Backend:  http://localhost:${APP_PORT:-8888}"
+echo "   🗄️  Database: localhost:${DOCKER_DB_PORT:-13306}"
+echo "   📮 Redis:    localhost:${DOCKER_REDIS_PORT:-16379}"
+echo ""
+echo "📊 View logs: docker compose logs -f"
+echo "🛑 Stop:      ./down"
+echo ""
