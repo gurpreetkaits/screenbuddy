@@ -9,14 +9,15 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
+        "danestves/laravel-polar": "^2.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.2",
         "laravel/socialite": "^5.23",
         "laravel/tinker": "^2.10.1",
         "pbmedia/laravel-ffmpeg": "^8.7",
         "spatie/laravel-medialibrary": "^11.0",
-        "standard-webhooks/standard-webhooks": "dev-main"
+        "standard-webhooks/standard-webhooks": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

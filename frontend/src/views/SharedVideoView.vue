@@ -407,7 +407,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8888'
 
 export default {
   name: 'SharedVideoView',

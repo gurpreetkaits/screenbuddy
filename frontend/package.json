@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@polar-sh/checkout": "^0.1.14",
+    "canvas-confetti": "^1.9.4",
     "vite-plugin-pwa": "^1.2.0",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5"

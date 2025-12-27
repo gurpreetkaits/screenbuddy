@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class StreamVideoController extends Controller
@@ -21,12 +21,26 @@ class StreamVideoController extends Controller
             'mime_type' => 'nullable|string',
         ]);
 
+        // Check if user can record video (subscription limit check)
+        $user = Auth::user();
+        if (! $user->canRecordVideo()) {
+            return response()->json([
+                'error' => 'video_limit_reached',
+                'message' => 'Limit Reached',
+                'detail' => 'You have reached your video limit. Upgrade to Pro to continue recording.',
+                'current_plan' => $user->hasActiveSubscription() ? 'pro' : 'free',
+                'videos_count' => $user->getVideosCount(),
+                'remaining_quota' => $user->getRemainingVideoQuota(),
+                'upgrade_url' => config('services.frontend.url').'/subscription',
+            ], 403);
+        }
+
         // Generate a unique session ID
         $sessionId = Str::uuid()->toString();
 
         // Create temp directory for chunks
         $chunkDir = storage_path("app/temp/stream-uploads/{$sessionId}");
-        if (!file_exists($chunkDir)) {
+        if (! file_exists($chunkDir)) {
             mkdir($chunkDir, 0755, true);
         }
 
@@ -62,7 +76,7 @@ class StreamVideoController extends Controller
         $chunkDir = storage_path("app/temp/stream-uploads/{$sessionId}");
 
         // Verify session exists
-        if (!file_exists("{$chunkDir}/metadata.json")) {
+        if (! file_exists("{$chunkDir}/metadata.json")) {
             return response()->json(['message' => 'Invalid session'], 404);
         }
 
@@ -117,7 +131,7 @@ class StreamVideoController extends Controller
         $chunkDir = storage_path("app/temp/stream-uploads/{$sessionId}");
 
         // Verify session exists
-        if (!file_exists("{$chunkDir}/metadata.json")) {
+        if (! file_exists("{$chunkDir}/metadata.json")) {
             return response()->json(['message' => 'Invalid session'], 404);
         }
 
@@ -164,6 +178,12 @@ class StreamVideoController extends Controller
 
         // Generate thumbnail
         $video->generateThumbnailFromMidpoint();
+
+        // Increment user's video count
+        $user = User::find($userId);
+        if ($user) {
+            $user->increment('videos_count');
+        }
 
         // Clean up chunks directory
         $this->cleanupSession($sessionId);
@@ -214,7 +234,7 @@ class StreamVideoController extends Controller
     {
         $chunkDir = storage_path("app/temp/stream-uploads/{$sessionId}");
 
-        if (!file_exists("{$chunkDir}/metadata.json")) {
+        if (! file_exists("{$chunkDir}/metadata.json")) {
             return response()->json(['message' => 'Session not found'], 404);
         }
 

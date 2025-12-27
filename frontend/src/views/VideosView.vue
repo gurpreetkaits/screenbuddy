@@ -74,26 +74,6 @@
               </button>
             </div>
           </div>
-
-          <!-- Pro tier -->
-          <div
-            v-else-if="subscription.is_active"
-            class="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4"
-          >
-            <div class="flex items-center gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="font-semibold text-gray-900">Pro Plan</h3>
-                <p class="text-sm text-gray-600">
-                  {{ subscription.videos_count }} video{{ subscription.videos_count === 1 ? '' : 's' }} recorded • Unlimited storage
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Tabs and Controls -->

@@ -1,8 +1,26 @@
 <template>
-  <div class="subscription-page">
-    <div class="container">
-      <div class="header">
-        <h1 class="title">Subscription</h1>
+  <div class="bg-gray-50 min-h-full">
+    <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <!-- Success Alert -->
+      <div v-if="showSuccessAlert" class="success-alert">
+        <div class="alert-content">
+          <svg class="success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <div>
+            <h3 class="alert-title">Welcome to ScreenSense Pro! 🎉</h3>
+            <p class="alert-message">Your subscription is now active. Enjoy unlimited video recordings!</p>
+          </div>
+          <button @click="showSuccessAlert = false" class="close-button">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Subscription</h1>
       </div>
 
       <!-- Loading State -->
@@ -221,14 +239,16 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import SBUpgradeModal from '@/components/Global/SBUpgradeModal.vue'
 import { useAuth } from '@/stores/auth'
 import toast from '@/services/toastService'
+import confetti from 'canvas-confetti/dist/confetti.module.mjs'
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuth()
 
 const subscription = ref(null)
@@ -238,6 +258,7 @@ const error = ref(null)
 const showUpgradeModal = ref(false)
 const canceling = ref(false)
 const loadingPortal = ref(false)
+const showSuccessAlert = ref(false)
 
 const hasActiveSubscription = computed(() => {
   return subscription.value?.is_active === true
@@ -407,42 +428,175 @@ function formatDate(dateString) {
   })
 }
 
+function triggerConfetti() {
+  const duration = 3000
+  const animationEnd = Date.now() + duration
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 }
+
+  function randomInRange(min, max) {
+    return Math.random() * (max - min) + min
+  }
+
+  const interval = setInterval(() => {
+    const timeLeft = animationEnd - Date.now()
+
+    if (timeLeft <= 0) {
+      return clearInterval(interval)
+    }
+
+    const particleCount = 50 * (timeLeft / duration)
+
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+    })
+    confetti({
+      ...defaults,
+      particleCount,
+      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+    })
+  }, 250)
+}
+
 onMounted(() => {
+  // Check if redirected from success page
+  if (route.query.success === 'true') {
+    showSuccessAlert.value = true
+    triggerConfetti()
+
+    // Clean up URL
+    router.replace({ query: {} })
+  }
+
   loadSubscription()
 })
 </script>
 
 <style scoped>
-.subscription-page {
-  min-height: 100%;
-  background: #f9fafb;
-  padding: 2rem 1rem;
+/* Success Alert */
+.success-alert {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  width: 90%;
+  max-width: 600px;
+  animation: slideDown 0.5s ease-out;
 }
 
-.container {
-  max-width: 700px;
-  margin: 0 auto;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
-.header {
-  margin-bottom: 2rem;
+.alert-content {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.title {
-  font-size: 1.75rem;
+.success-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  stroke-width: 3;
+}
+
+.alert-title {
+  font-size: 1.125rem;
   font-weight: 700;
-  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.alert-message {
+  font-size: 0.875rem;
   margin: 0;
+  opacity: 0.95;
+}
+
+.close-button {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.close-button svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+@media (max-width: 640px) {
+  .success-alert {
+    top: 1rem;
+    width: 95%;
+  }
+
+  .alert-content {
+    padding: 1rem;
+  }
+
+  .alert-title {
+    font-size: 1rem;
+  }
+
+  .alert-message {
+    font-size: 0.8125rem;
+  }
+
+  .success-icon {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 /* Loading & Error States */
 .loading-state,
 .error-state {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 1rem;
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 640px) {
+  .loading-state,
+  .error-state {
+    padding: 4rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .loading-state,
+  .error-state {
+    padding: 4rem 2rem;
+  }
 }
 
 .spinner {
@@ -480,8 +634,20 @@ onMounted(() => {
 }
 
 .empty-state {
-  padding: 3rem 2rem;
+  padding: 2rem 1rem;
   text-align: center;
+}
+
+@media (min-width: 640px) {
+  .empty-state {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .empty-state {
+    padding: 3rem 2rem;
+  }
 }
 
 .empty-icon {
@@ -510,15 +676,27 @@ onMounted(() => {
 
 .empty-state > p {
   color: #6b7280;
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .empty-state > p {
+    margin: 0 0 2rem;
+  }
 }
 
 .free-tier-info {
   background: #f9fafb;
   border-radius: 8px;
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   text-align: left;
+}
+
+@media (min-width: 640px) {
+  .free-tier-info {
+    margin-bottom: 2rem;
+  }
 }
 
 .free-tier-info h3 {
@@ -592,7 +770,13 @@ onMounted(() => {
 .subscription-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .subscription-list {
+    gap: 2rem;
+  }
 }
 
 .subscription-card {
@@ -799,8 +983,14 @@ onMounted(() => {
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   border-top: none;
+}
+
+@media (min-width: 640px) {
+  .history-section-active {
+    margin-top: 2rem;
+  }
 }
 
 .history-title {

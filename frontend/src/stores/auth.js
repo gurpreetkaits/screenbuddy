@@ -125,6 +125,7 @@ async function fetchSubscription() {
   }
 
   try {
+    console.log('[Auth] Making API call to /api/subscription/status...')
     const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -135,6 +136,12 @@ async function fetchSubscription() {
     if (response.ok) {
       const data = await response.json()
       state.subscription = data.subscription
+      console.log('[Auth] Subscription status received:', {
+        can_record: data.subscription?.can_record,
+        is_active: data.subscription?.is_active,
+        videos_count: data.subscription?.videos_count,
+        remaining_quota: data.subscription?.remaining_quota
+      })
       return data.subscription
     } else if (response.status === 401) {
       // Token invalid, clear auth
@@ -197,7 +204,7 @@ export function useAuth() {
 
     // Google OAuth
     loginWithGoogle() {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8888'
       window.location.href = backendUrl + '/api/auth/google'
     },
   }
