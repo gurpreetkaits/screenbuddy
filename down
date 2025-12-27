@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Stop the ScreenBuddy development environment
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "🛑 Stopping ScreenBuddy development environment..."
+
+# Stop and remove all containers
+docker compose down
+
+echo ""
+echo "✅ ScreenBuddy stopped and containers removed"
+echo ""
+echo "🚀 Start again: ./up"
+echo ""
