@@ -69,7 +69,8 @@ class SubscriptionControllerTest extends TestCase
 
     public function test_it_shows_free_user_cannot_record_after_limit()
     {
-        $this->user->update(['videos_count' => 1]);
+        // Create 1 video to reach the free tier limit
+        \App\Models\Video::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/subscription/status');
